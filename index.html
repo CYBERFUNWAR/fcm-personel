@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fiche de Suivi – Full Contact 2026-2027</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+:root{--red:#7B0000;--red2:#A00000;--gold:#C9A84C;--gold2:#E8C96A;--dark:#111;--g1:#333;--g2:#666;--g3:#999;--g4:#CCC;--g5:#F2F2F2;--p1:#1A6B8A;--p2:#2E4057;--p3:#7B241C;--p4:#1A5E20;--p5:#5B2C6F}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#1a1a1a;color:var(--dark);min-height:100vh;padding:12px}
+.shell{max-width:980px;margin:0 auto}
+
+/* NAV */
+.topnav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--red);border-bottom:3px solid var(--gold);border-radius:6px 6px 0 0;gap:8px;flex-wrap:wrap}
+.tn-left{display:flex;align-items:center;gap:10px}
+.tn-badge{background:var(--gold);color:var(--red);font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;padding:2px 8px;border-radius:2px;letter-spacing:1px;white-space:nowrap}
+.tn-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:white;letter-spacing:1px}
+.tn-sub{font-size:10px;color:rgba(255,255,255,.7);margin-top:1px}
+.tn-center{display:flex;align-items:center;gap:6px;flex:1;justify-content:center;flex-wrap:wrap}
+.sw-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);color:white;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.sw-btn:hover,.sw-btn:active{background:rgba(255,255,255,.22);border-color:var(--gold);color:var(--gold)}
+.fb-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);cursor:pointer;transition:all .2s;white-space:nowrap}
+.fb-status:hover{border-color:var(--gold);color:var(--gold)}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:var(--g3);flex-shrink:0}
+.fb-dot.ok{background:#2ecc71}
+.fb-dot.warn{background:#e67e22}
+.fb-dot.err{background:#e74c3c}
+.tn-right{text-align:right}
+.tn-right .club{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--gold);font-size:12px;white-space:nowrap}
+.tn-right .author{font-size:9px;color:rgba(255,255,255,.6);margin-top:1px;white-space:nowrap}
+
+/* TABS */
+.tabs{display:flex;background:#222;border-bottom:2px solid var(--gold);overflow-x:auto}
+.tab{flex:1;min-width:60px;padding:8px 3px;text-align:center;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:10px;letter-spacing:.3px;color:var(--g3);border-top:3px solid transparent;transition:all .2s;text-transform:uppercase;user-select:none;white-space:nowrap}
+.tab:hover{color:var(--gold);background:#2a2a2a}
+.tab.active{color:var(--gold);border-top:3px solid var(--gold);background:#2e2e2e}
+.tab-num{display:inline-block;width:15px;height:15px;border-radius:50%;background:var(--red);color:white;font-size:8px;line-height:15px;margin-right:3px}
+
+/* PANELS */
+.panel{display:none;background:white;padding:14px}
+.panel.active{display:block}
+
+/* SEC HDR */
+.sh{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;overflow:hidden}
+.sb{width:4px;height:18px;background:var(--gold);border-radius:2px;flex-shrink:0}
+.sh h2{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--red);letter-spacing:.5px;text-transform:uppercase;min-width:0;word-break:break-word}
+.hint{font-size:9px;color:var(--g3);font-style:italic;margin-left:auto;text-align:right;min-width:0;word-break:break-word}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:9px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.5px}
+.fg input,.fg select,.fg textarea{border:none;border-bottom:1.5px solid var(--g4);background:transparent;padding:5px 2px;font-family:'Barlow',sans-serif;font-size:13px;color:var(--dark);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;border-radius:0}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-bottom-color:var(--red)}
+.fg textarea{resize:none;border:1px solid var(--g4);border-radius:4px;padding:7px}
+.fg textarea:focus{border-color:var(--red)}
+.fgrid{display:grid;gap:10px;margin-bottom:12px}
+
+/* STATS */
+.att-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.sbox{background:var(--g5);border-left:3px solid var(--red);padding:7px 8px;border-radius:0 4px 4px 0}
+.sbox .val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--red);line-height:1}
+.sbox .lbl{font-size:9px;color:var(--g2);margin-top:1px}
+
+/* LEGEND */
+.legrow{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--g1)}
+.legbadge{width:22px;height:19px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:white}
+
+/* ATTENDANCE */
+.ph-label{display:flex;align-items:center;gap:8px;padding:4px 9px;color:white;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:11px;letter-spacing:.5px;margin:6px 0 3px;border-radius:3px}
+.ph-label span{color:rgba(255,255,255,.6);font-weight:400;font-size:10px}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:3px}
+.sc{border-radius:4px;border:1.5px solid transparent;overflow:hidden}
+.sn{text-align:center;font-size:8.5px;font-weight:700;padding:2px 1px 1px;color:white}
+.sbr{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--g4)}
+.sb{text-align:center;padding:4px 2px;font-size:12px;font-weight:700;cursor:pointer;background:#fff;color:var(--g3);transition:background .15s,color .15s;user-select:none;-webkit-tap-highlight-color:transparent;min-height:28px;display:flex;align-items:center;justify-content:center;border:none;width:100%}
+.sb:active{transform:scale(.9)}
+.sb.ok{background:#27ae60!important;color:white!important;font-weight:900!important}
+.sb.ko{background:#c0392b!important;color:white!important;font-weight:900!important}
+
+/* TECHNIQUE */
+.ph-sec{margin-bottom:12px}
+.ph-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:4px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.ph-hdr-l{display:flex;align-items:center;gap:7px}
+.ph-code{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:12px;color:white;background:rgba(0,0,0,.2);padding:2px 6px;border-radius:3px}
+.ph-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:white}
+.ph-per{font-size:10px;color:rgba(255,255,255,.6);font-style:italic}
+.ph-chev{color:rgba(255,255,255,.7);font-size:11px;transition:transform .2s}
+.ph-hdr.collapsed .ph-chev{transform:rotate(-90deg)}
+.tt{width:100%;border-collapse:collapse}
+.tt thead th{background:var(--g1);color:white;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:5px 6px;text-align:left}
+.tt thead th.c{text-align:center}
+.tt tbody tr:nth-child(even){background:var(--g5)}
+.tt tbody td{padding:4px 6px;font-size:11px;color:var(--g1);border-bottom:1px solid var(--g4);vertical-align:middle}
+.tt tbody td.c{text-align:center}
+.esel{border:none;background:transparent;font-size:14px;cursor:pointer;outline:none;text-align:center;width:42px;padding:2px;border-radius:4px}
+.oinp{border:none;border-bottom:1px solid var(--g4);background:transparent;width:100%;font-size:10px;font-family:'Barlow',sans-serif;outline:none;padding:2px;color:var(--g1)}
+.oinp:focus{border-bottom-color:var(--red)}
+
+/* DATA TABLE */
+.dt{width:100%;border-collapse:collapse;margin-bottom:12px}
+.dt thead th{background:var(--red);color:white;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.5px;padding:6px 8px;text-align:left;text-transform:uppercase}
+.dt tbody tr:nth-child(even){background:var(--g5)}
+.dt tbody td{padding:4px 7px;border-bottom:1px solid var(--g4);vertical-align:middle}
+.dt input{border:none;border-bottom:1px solid var(--g4);background:transparent;width:100%;font-size:11px;font-family:'Barlow',sans-serif;outline:none;padding:3px 2px;color:var(--g1)}
+.dt input:focus{border-bottom-color:var(--red)}
+.rbadge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;font-family:'Barlow Condensed',sans-serif;cursor:pointer;user-select:none;transition:all .2s;border:1.5px solid var(--g4);color:var(--g2);letter-spacing:.5px;margin:1px;-webkit-tap-highlight-color:transparent}
+.rbadge.recu{background:#2ecc71;color:white;border-color:#2ecc71}
+.rbadge.ajourne{background:#e67e22;color:white;border-color:#e67e22}
+.rbadge.refuse{background:#e74c3c;color:white;border-color:#e74c3c}
+
+/* PHYSIQUE */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.pc{border:1px solid var(--g4);border-radius:6px;overflow:hidden}
+.pch{background:var(--g5);padding:5px 9px;font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--g4)}
+.pr{display:flex;align-items:center;justify-content:space-between;padding:5px 9px;border-bottom:1px solid var(--g4);font-size:11px;color:var(--g1)}
+.pr:last-child{border-bottom:none}
+.pr label{font-size:10px;color:var(--g2)}
+.pr input{width:65px;text-align:center;border:none;border-bottom:1px solid var(--g4);background:transparent;font-size:11px;font-family:'Barlow',sans-serif;font-weight:600;outline:none;padding:2px 4px;color:var(--dark)}
+.pr input:focus{border-bottom-color:var(--red)}
+.ea{font-size:15px}
+
+/* BILAN */
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.bc{border:1px solid var(--g4);border-radius:6px;overflow:hidden}
+.bch{padding:6px 10px;background:var(--g5);border-bottom:1px solid var(--g4);font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.3px}
+.bc textarea{width:100%;border:none;background:transparent;font-family:'Barlow',sans-serif;font-size:11px;color:var(--g1);padding:9px 10px;resize:none;min-height:70px;outline:none;line-height:1.5}
+.bfull{border:1px solid var(--g4);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.bfull-h{padding:6px 10px;background:var(--g5);border-bottom:1px solid var(--g4);font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.3px}
+.bfull textarea{width:100%;border:none;background:transparent;font-family:'Barlow',sans-serif;font-size:11px;color:var(--g1);padding:9px 10px;resize:none;min-height:60px;outline:none;line-height:1.5}
+.gfrow{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--g5);border-radius:6px;border-left:4px solid var(--gold);flex-wrap:wrap}
+.gfrow .gfl{font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.gfrow input{border:none;border-bottom:2px solid var(--gold);background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--dark);outline:none;padding:2px 5px;width:150px;text-align:center}
+
+/* ACTION BAR */
+.abar{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#222;border-top:2px solid var(--gold);border-radius:0 0 6px 6px;flex-wrap:wrap;gap:8px}
+.brow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:.5px;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.97)}
+.bprim{background:var(--gold);color:var(--red)}.bprim:hover{background:var(--gold2)}
+.bpdf{background:#2980b9;color:white}.bpdf:hover{background:#1a6fa0}
+.bdang{background:#c0392b;color:white}.bdang:hover{background:#a93226}
+.bgh{background:transparent;color:var(--g3);border:1px solid #444}.bgh:hover{color:white;border-color:#666}
+.sinf{font-size:10px;color:var(--g3);font-style:italic}
+.sinf.ok{color:#2ecc71}.sinf.bad{color:#e67e22}
+
+/* ══ MODAL BASE ══ */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center}
+.moverlay.open{display:flex}
+/* Sur desktop, centrer */
+@media(min-width:600px){.moverlay{align-items:center}}
+.modal{background:white;width:100%;max-width:540px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border-radius:12px 12px 0 0}
+@media(min-width:600px){.modal{border-radius:8px;max-height:85vh}}
+.mhdr{background:var(--red);color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);flex-shrink:0}
+.mhdr h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:.5px}
+.mclose{background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer;line-height:1;padding:0 4px;-webkit-tap-highlight-color:transparent}
+.mclose:hover{color:white}
+.mbody{padding:14px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.mfoot{padding:10px 14px;border-top:1px solid var(--g4);display:flex;gap:8px;flex-shrink:0;background:var(--g5)}
+
+/* STUDENT LIST */
+.slist{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.sitem{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1.5px solid var(--g4);border-radius:6px;gap:8px;transition:border-color .2s}
+.sitem:hover{border-color:var(--red);background:var(--g5)}
+.sitem.cur{border-color:var(--gold);background:#FFF8EA}
+.sinfo{display:flex;flex-direction:column;flex:1}
+.sname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--dark)}
+.ssub{font-size:10px;color:var(--g3);margin-top:1px}
+.sacts{display:flex;gap:6px;flex-shrink:0}
+.bsm{padding:5px 12px;font-size:11px;border-radius:4px;cursor:pointer;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.3px;transition:all .2s;-webkit-tap-highlight-color:transparent;min-height:34px}
+.bsml{background:var(--red);color:white}.bsml:hover{background:var(--red2)}
+.bsmd{background:none;border:1.5px solid var(--g4);color:var(--g3)}.bsmd:hover{border-color:#e74c3c;color:#e74c3c}
+
+/* NEW STUDENT FORM */
+.nsf{border-top:2px solid var(--g4);padding-top:14px;margin-top:4px}
+.nsf h4{font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.nff{display:flex;flex-direction:column;gap:4px}
+.nff label{font-size:10px;font-weight:600;color:var(--g2);text-transform:uppercase;letter-spacing:.4px}
+.nff input,.nff select{border:none;border-bottom:1.5px solid var(--g4);background:transparent;padding:7px 2px;font-family:'Barlow',sans-serif;font-size:14px;color:var(--dark);outline:none;transition:border-color .2s;width:100%;-webkit-appearance:none;border-radius:0}
+.nff input:focus,.nff select:focus{border-bottom-color:var(--red)}
+/* Bouton créer dans le corps du modal (toujours visible sur mobile) */
+.create-btn-inline{width:100%;margin-top:14px;padding:13px;font-size:14px;background:var(--gold);color:var(--red);border:none;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-weight:900;letter-spacing:1px;cursor:pointer;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
+.create-btn-inline:active{background:var(--gold2);transform:scale(.98)}
+.empty{text-align:center;padding:20px;color:var(--g3);font-size:12px;font-style:italic}
+
+/* FIREBASE CONFIG MODAL */
+.fb-modal{background:white;width:100%;max-width:540px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border-radius:12px 12px 0 0}
+@media(min-width:600px){.fb-modal{border-radius:8px;max-height:85vh}}
+.fb-section{margin-bottom:14px}
+.fb-section label{display:block;font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.fb-section input{width:100%;border:1px solid var(--g4);border-radius:4px;padding:8px 10px;font-family:'Barlow',monospace;font-size:12px;color:var(--dark);outline:none;transition:border-color .2s}
+.fb-section input:focus{border-color:var(--red)}
+.fb-info{background:var(--g5);border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 4px 4px 0;font-size:11px;color:var(--g1);line-height:1.5;margin-bottom:14px}
+.fb-info strong{color:var(--red)}
+.fb-info a{color:var(--p1);text-decoration:none;font-weight:600}
+.fb-info a:hover{text-decoration:underline}
+.fb-steps{font-size:11px;color:var(--g1);line-height:1.7;margin-bottom:14px;padding-left:4px}
+.fb-steps li{margin-bottom:4px;padding-left:4px}
+.fb-connected{background:#E8F4EA;border:1.5px solid #2ecc71;border-radius:6px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.fb-connected .icon{font-size:22px}
+.fb-connected .txt{font-size:12px;color:var(--g1);line-height:1.4}
+.fb-connected .txt strong{color:#1A5E20;font-size:13px}
+
+/* SYNC INDICATOR */
+.sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--g3);padding:2px 8px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15)}
+.sync-badge.syncing{color:#f39c12}.sync-badge.synced{color:#2ecc71}.sync-badge.err{color:#e74c3c}
+
+/* CONFIRM BAR */
+.confirm-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#FFF0F0;border:1.5px solid #e74c3c;border-radius:4px;margin-top:4px;font-size:12px;flex-wrap:wrap}
+.confirm-bar span{color:#c0392b;font-weight:600;flex:1}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:16px;left:16px;max-width:400px;margin:0 auto;background:var(--dark);color:white;padding:11px 16px;border-radius:6px;border-left:4px solid var(--gold);font-size:12px;font-family:'Barlow',sans-serif;opacity:0;transform:translateY(20px);transition:all .3s;z-index:500;pointer-events:none;text-align:center}
+@media(min-width:480px){.toast{left:auto;right:20px;text-align:left}}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:480px){
+  body{padding:8px}
+  .fgrid{grid-template-columns:1fr!important}
+  .pgrid{grid-template-columns:1fr 1fr}
+  .bgrid{grid-template-columns:1fr}
+  .att-stats{grid-template-columns:1fr 1fr;gap:5px}
+  .tn-right{display:none}
+  .tn-title{font-size:14px}
+  .tabs{font-size:9px}
+  .hint{display:none}
+  .sh h2{font-size:13px}
+  .panel{padding:10px}
+}
+
+/* PRINT */
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:white;padding:0;margin:0;font-size:8.5px}
+  .shell{max-width:100%;margin:0}
+  .tabs,.abar,.moverlay,.toast,.sw-btn,.fb-status,.sync-badge{display:none!important}
+  .topnav{border-radius:0;padding:6px 12px;flex-wrap:nowrap}
+  .tn-badge{font-size:8px;padding:1px 5px}
+  .tn-title{font-size:13px}
+  .tn-sub,.tn-right .author{font-size:8px}
+  .tn-right .club{font-size:11px}
+  .panel{display:block!important;padding:5px 10px;margin:0;background:white}
+  .panel+.panel{page-break-before:auto;border-top:2px solid #C9A84C;margin-top:2px}
+  .sh{margin-bottom:4px}.sh h2{font-size:11px}.sb{height:13px;width:3px}
+  .fgrid{gap:4px;margin-bottom:5px}
+  .fg label{font-size:8px}.fg input,.fg select,.fg textarea{font-size:9px;padding:2px 1px}
+  .fg textarea{min-height:24px;padding:3px 5px}
+  .att-stats{gap:4px;margin-bottom:5px}
+  .sbox{padding:4px 6px}.sbox .val{font-size:15px}.sbox .lbl{font-size:8px}
+  .legrow{margin-bottom:4px;gap:8px;font-size:9px}
+  .legbadge{width:18px;height:16px;font-size:8px}
+  .ph-label{padding:3px 8px;font-size:9px;margin:3px 0 2px}
+  .sg{grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:2px}
+  .sn{font-size:7px;padding:2px 1px 0}.sb{padding:2px 1px;font-size:9px;min-height:20px}
+  .ph-sec{margin-bottom:5px;page-break-inside:avoid}
+  .ph-hdr{padding:3px 8px;border-radius:2px}
+  .ph-code{font-size:10px;padding:1px 4px}.ph-name{font-size:11px}.ph-per{font-size:9px}
+  .tt thead th{padding:3px 4px;font-size:8px}.tt tbody td{padding:2px 4px;font-size:9px}
+  .esel{font-size:12px;width:30px}.oinp{font-size:9px}
+  .dt thead th{padding:3px 6px;font-size:9px}.dt tbody td{padding:2px 6px;font-size:9px}.dt input{font-size:9px}
+  .rbadge{font-size:8px;padding:1px 4px}
+  .pgrid{gap:5px;grid-template-columns:repeat(3,1fr);margin-bottom:6px;page-break-inside:avoid}
+  .pch{padding:3px 7px;font-size:9px}.pr{padding:3px 7px;font-size:9px}.pr input{font-size:9px;width:50px}.ea{font-size:11px}
+  .bgrid{gap:6px;margin-bottom:6px;page-break-inside:avoid}
+  .bch,.bfull-h{padding:4px 8px;font-size:9px}
+  .bc textarea,.bfull textarea{min-height:42px;padding:5px 8px;font-size:9px}
+  .bfull{margin-bottom:6px}
+  .gfrow{padding:6px 10px;gap:8px;page-break-inside:avoid}
+  .gfrow .gfl{font-size:9px}.gfrow input{font-size:13px;width:120px}
+  .dt{page-break-inside:avoid}.att-stats{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<!-- ════ OVERLAY MOT DE PASSE ════ -->
+<div id="pw-overlay" style="position:fixed;inset:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;transition:opacity .3s">
+  <div style="background:white;border-radius:10px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+    <div style="background:#7B0000;padding:22px 20px;text-align:center;border-bottom:3px solid #C9A84C">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;background:#C9A84C;color:#7B0000;display:inline-block;padding:2px 10px;border-radius:2px;letter-spacing:1px;margin-bottom:8px">FULL CONTACT</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;color:white;letter-spacing:1px">FICHE DE SUIVI</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:3px">Club FCM · Saison 2026-2027</div>
+    </div>
+    <div style="padding:24px 22px">
+      <p style="font-size:12px;color:#666;margin-bottom:18px;text-align:center">Accès réservé aux professeurs du club.</p>
+      <label style="font-size:10px;font-weight:600;color:#7B0000;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Mot de passe</label>
+      <input id="pw-input" type="password" placeholder="••••••••" autocomplete="current-password"
+        style="width:100%;border:1.5px solid #CCC;border-radius:6px;padding:12px 14px;font-size:18px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:8px;-webkit-appearance:none;box-sizing:border-box"
+        oninput="document.getElementById('pw-err').style.display='none'"
+        onkeydown="if(event.key==='Enter')pwLogin()"
+      >
+      <div id="pw-err" style="color:#e74c3c;font-size:12px;margin-bottom:10px;display:none;text-align:center">❌ Mot de passe incorrect</div>
+      <button id="pw-btn" onclick="pwLogin()" style="width:100%;padding:13px;background:#C9A84C;color:#7B0000;border:none;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:15px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">🔓 Connexion</button>
+      <div style="margin-top:14px;text-align:center;font-size:10px;color:#BBB">Julien Boulet 3ème Dan – Karaté Full Contact</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Script d'authentification — défini immédiatement, avant tout le reste
+var APP_PASSWORD = 'FCM1984';
+var KAUTH = 'fcm_auth_2627';
+
+function checkAuth(){
+  try{
+    var d = JSON.parse(localStorage.getItem(KAUTH)||'{}');
+    return d.ok === true && Date.now() < (d.expiry||0);
+  }catch(e){ return false; }
+}
+
+function unlockApp(){
+  var ov = document.getElementById('pw-overlay');
+  if(!ov) return;
+  ov.style.opacity = '0';
+  setTimeout(function(){ ov.style.display='none'; }, 300);
+}
+
+function pwLogin(){
+  var input = document.getElementById('pw-input');
+  var val = input ? input.value : '';
+  if(val === APP_PASSWORD){
+    var expiry = Date.now() + 24*60*60*1000;
+    localStorage.setItem(KAUTH, JSON.stringify({ok:true, expiry:expiry}));
+    unlockApp();
+  } else {
+    var err = document.getElementById('pw-err');
+    if(err) err.style.display = 'block';
+    if(input){ input.value=''; input.focus(); input.style.borderColor='#e74c3c'; setTimeout(function(){ input.style.borderColor='#CCC'; },1500); }
+  }
+}
+
+function logout(){
+  localStorage.removeItem(KAUTH);
+  location.reload();
+}
+
+// Vérifier immédiatement si déjà connecté
+if(checkAuth()){ unlockApp(); }
+else { setTimeout(function(){ var el=document.getElementById('pw-input'); if(el)el.focus(); },200); }
+</script>
+
+<div class="shell">
+
+<!-- TOP NAV -->
+<div class="topnav">
+  <div class="tn-left">
+    <div>
+      <div class="tn-badge">FULL CONTACT</div>
+      <div class="tn-title">FICHE DE SUIVI INDIVIDUEL</div>
+      <div class="tn-sub">Groupe Adolescents · Tous niveaux · 2026-2027</div>
+    </div>
+  </div>
+  <div class="tn-center">
+    <button class="sw-btn" onclick="openModal()">👤 <span id="cur-display">Sélectionner un élève</span> ▾</button>
+    <div class="fb-status" onclick="openFbModal()" title="Configuration Firebase">
+      <div class="fb-dot" id="fb-dot"></div>
+      <span id="fb-label">Non connecté</span>
+    </div>
+  </div>
+  <div class="tn-right" style="display:flex;align-items:center;gap:8px">
+    <div>
+      <div class="club">Club FCM, Full Contact Maximois</div>
+      <div class="author">créé par Julien Boulet 3ème Dan – Karaté Full Contact</div>
+    </div>
+    <button onclick="if(confirm('Se déconnecter ?'))logout()"
+      title="Se déconnecter"
+      style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.8);border-radius:4px;padding:5px 8px;cursor:pointer;font-size:15px;flex-shrink:0"
+    >🔒</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)"><span class="tab-num">1</span>Identité</div>
+  <div class="tab" onclick="switchTab(1)"><span class="tab-num">2</span>Assiduité</div>
+  <div class="tab" onclick="switchTab(2)"><span class="tab-num">3</span>Technique</div>
+  <div class="tab" onclick="switchTab(3)"><span class="tab-num">4</span>Grades & Compét.</div>
+  <div class="tab" onclick="switchTab(4)"><span class="tab-num">5</span>Physique</div>
+  <div class="tab" onclick="switchTab(5)"><span class="tab-num">6</span>Bilan</div>
+</div>
+
+<!-- PANEL 1 : IDENTITÉ -->
+<div class="panel active" id="panel-0">
+  <div class="sh"><div class="sb"></div><h2>Identité de l'élève</h2></div>
+  <div class="fgrid" style="grid-template-columns:2fr 2fr 1.3fr">
+    <div class="fg"><label>Nom</label><input id="nom" type="text" placeholder="—" oninput="updateDisplay()"></div>
+    <div class="fg"><label>Prénom</label><input id="prenom" type="text" placeholder="—" oninput="updateDisplay()"></div>
+    <div class="fg"><label>Date de naissance</label><input id="ddn" type="date"></div>
+  </div>
+  <div class="fgrid" style="grid-template-columns:1.7fr 1fr 0.8fr 1.2fr">
+    <div class="fg">
+      <label>Ceinture en début de saison</label>
+      <select id="ceinture">
+        <option value="">— Sélectionner —</option>
+        <optgroup label="Ceintures et demi-ceintures">
+          <option>Blanche</option><option>Blanche – Jaune</option><option>Jaune</option>
+          <option>Jaune – Orange</option><option>Orange</option><option>Orange – Verte</option>
+          <option>Verte</option><option>Verte – Bleue</option><option>Bleue</option>
+          <option>Bleue – Marron</option><option>Marron</option><option>Marron – Noire</option>
+        </optgroup>
+        <optgroup label="Ceintures noires – Dans">
+          <option>Noire – 1er Dan</option><option>Noire – 2ème Dan</option><option>Noire – 3ème Dan</option>
+          <option>Noire – 4ème Dan</option><option>Noire – 5ème Dan</option><option>Noire – 6ème Dan</option>
+          <option>Noire – 7ème Dan</option><option>Noire – 8ème Dan</option><option>Noire – 9ème Dan</option>
+          <option>Noire – 10ème Dan</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="fg"><label>N° Licence FFKDa</label><input id="licence" type="text" placeholder="—"></div>
+    <div class="fg"><label>Poids (kg)</label><input id="poids" type="number" placeholder="—"></div>
+    <div class="fg"><label>Catégorie compét.</label><input id="categorie" type="text" placeholder="ex: -60kg Cadets"></div>
+  </div>
+  <div class="fgrid" style="grid-template-columns:2fr 1.2fr 1.5fr">
+    <div class="fg"><label>Nom du parent / tuteur</label><input id="parent" type="text" placeholder="—"></div>
+    <div class="fg"><label>Téléphone d'urgence</label><input id="tel" type="tel" placeholder="06 00 00 00 00"></div>
+    <div class="fg"><label>Email</label><input id="email" type="email" placeholder="—"></div>
+  </div>
+  <div class="fgrid">
+    <div class="fg"><label>Objectifs personnels pour la saison 2026-2027</label><textarea id="objectifs" placeholder="Ex: Obtenir la ceinture bleue, participer à 2 tournois…" rows="3"></textarea></div>
+  </div>
+</div>
+
+<!-- PANEL 2 : ASSIDUITÉ -->
+<div class="panel" id="panel-1">
+  <div class="sh"><div class="sb"></div><h2>Assiduité – 63 séances</h2><span class="hint">Tapez ✓ présent ou ✗ absent</span></div>
+  <div class="att-stats">
+    <div class="sbox"><div class="val" id="s-pres">0</div><div class="lbl">Présences</div></div>
+    <div class="sbox" style="border-left-color:#e74c3c"><div class="val" id="s-abs" style="color:#e74c3c">0</div><div class="lbl">Absences</div></div>
+    <div class="sbox" style="border-left-color:var(--gold)"><div class="val" id="s-pct" style="color:var(--gold)">—</div><div class="lbl">% Assiduité</div></div>
+    <div class="sbox" style="border-left-color:var(--g3)"><div class="val" id="s-rem" style="color:var(--g3)">63</div><div class="lbl">Non renseignées</div></div>
+  </div>
+  <div class="legrow">
+    <div style="display:flex;align-items:center;gap:5px"><div class="legbadge" style="background:#2ecc71">✓</div>Présent</div>
+    <div style="display:flex;align-items:center;gap:5px"><div class="legbadge" style="background:#e74c3c">✗</div>Absent</div>
+    <div style="display:flex;align-items:center;gap:5px"><div class="legbadge" style="background:var(--g3)">—</div>Non renseigné</div>
+  </div>
+  <div id="att-cont"></div>
+</div>
+
+<!-- PANEL 3 : TECHNIQUE -->
+<div class="panel" id="panel-2">
+  <div class="sh"><div class="sb"></div><h2>Progression technique</h2><span class="hint">○ Non abordé △ En cours ◑ Acquis ● Maîtrisé</span></div>
+  <div id="tech-cont"></div>
+</div>
+
+<!-- PANEL 4 : GRADES & COMPÉTITIONS -->
+<div class="panel" id="panel-3">
+  <div class="sh"><div class="sb"></div><h2>Examens de grades</h2></div>
+  <table class="dt">
+    <thead><tr><th>Session</th><th>Date</th><th>Grade présenté</th><th>Résultat</th><th>Observations</th></tr></thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:600;font-size:11px;white-space:nowrap">1ère session<br><span style="font-size:9px;color:var(--g3)">Déc. 2026</span></td>
+        <td><input type="date" id="g1d"></td><td><input type="text" id="g1g" placeholder="ex: Ceinture verte"></td>
+        <td>
+          <span class="rbadge" data-grp="g1" data-cls="recu" onclick="toggleR(this)">Reçu</span>
+          <span class="rbadge" data-grp="g1" data-cls="ajourne" onclick="toggleR(this)">Ajourné</span>
+          <span class="rbadge" data-grp="g1" data-cls="refuse" onclick="toggleR(this)">Refusé</span>
+        </td>
+        <td><input type="text" id="g1o" placeholder="Observations…"></td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;font-size:11px;white-space:nowrap">2ème session<br><span style="font-size:9px;color:var(--g3)">Avr. 2027</span></td>
+        <td><input type="date" id="g2d"></td><td><input type="text" id="g2g" placeholder="ex: Ceinture bleue"></td>
+        <td>
+          <span class="rbadge" data-grp="g2" data-cls="recu" onclick="toggleR(this)">Reçu</span>
+          <span class="rbadge" data-grp="g2" data-cls="ajourne" onclick="toggleR(this)">Ajourné</span>
+          <span class="rbadge" data-grp="g2" data-cls="refuse" onclick="toggleR(this)">Refusé</span>
+        </td>
+        <td><input type="text" id="g2o" placeholder="Observations…"></td>
+      </tr>
+      <tr>
+        <td style="font-weight:600;font-size:11px;white-space:nowrap">Rattrapage<br><span style="font-size:9px;color:var(--g3)">Si nécessaire</span></td>
+        <td><input type="date" id="g3d"></td><td><input type="text" id="g3g" placeholder="—"></td>
+        <td>
+          <span class="rbadge" data-grp="g3" data-cls="recu" onclick="toggleR(this)">Reçu</span>
+          <span class="rbadge" data-grp="g3" data-cls="ajourne" onclick="toggleR(this)">Ajourné</span>
+          <span class="rbadge" data-grp="g3" data-cls="refuse" onclick="toggleR(this)">Refusé</span>
+        </td>
+        <td><input type="text" id="g3o" placeholder="Observations…"></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="sh" style="margin-top:14px"><div class="sb"></div><h2>Compétitions disputées</h2></div>
+  <table class="dt">
+    <thead><tr><th>Tournoi / Compétition</th><th>Date</th><th>Lieu</th><th>Résultat</th><th>Analyse qualitative</th></tr></thead>
+    <tbody id="comp-body"></tbody>
+  </table>
+  <button class="btn bgh" onclick="addCompRow()" style="font-size:11px;padding:6px 12px">+ Ajouter une compétition</button>
+</div>
+
+<!-- PANEL 5 : PHYSIQUE -->
+<div class="panel" id="panel-4">
+  <div class="sh"><div class="sb"></div><h2>Évaluations physiques</h2><span class="hint">3 mesures sur la saison</span></div>
+  <div class="pgrid" id="phys-cont"></div>
+</div>
+
+<!-- PANEL 6 : BILAN -->
+<div class="panel" id="panel-5">
+  <div class="sh"><div class="sb"></div><h2>Bilan annuel du professeur</h2></div>
+  <div class="bgrid">
+    <div class="bc"><div class="bch">⭐ Points forts consolidés</div><textarea id="b-forts" placeholder="Qualités remarquées sur la saison…"></textarea></div>
+    <div class="bc"><div class="bch">🎯 Axes de progression prioritaires</div><textarea id="b-axes" placeholder="Points faibles à cibler…"></textarea></div>
+    <div class="bc"><div class="bch">🤝 Attitude & état d'esprit</div><textarea id="b-attitude" placeholder="Engagement, respect, régularité…"></textarea></div>
+    <div class="bc"><div class="bch">🚀 Recommandations 2027-2028</div><textarea id="b-reco" placeholder="Conseils pour la prochaine saison…"></textarea></div>
+  </div>
+  <div class="bfull"><div class="bfull-h">📝 Observations libres & notes complémentaires</div><textarea id="b-libre" placeholder="Notes libres, anecdotes…" rows="4"></textarea></div>
+  <div class="gfrow">
+    <span class="gfl">Grade final obtenu</span>
+    <input id="grade-final" type="text" placeholder="ex: Ceinture bleue">
+    <span style="font-size:10px;color:var(--g3);margin-left:auto">Date de clôture :</span>
+    <input id="date-cloture" type="date" style="border:none;border-bottom:1px solid var(--g4);background:transparent;font-size:12px;outline:none;padding:2px 4px;color:var(--g1);width:130px">
+  </div>
+</div>
+
+<!-- ACTION BAR -->
+<div class="abar">
+  <div class="brow">
+    <button class="btn bprim" onclick="saveData()">💾 Sauvegarder</button>
+    <button class="btn bpdf" onclick="exportPDF()">🖨 PDF</button>
+    <button class="btn bgh" onclick="exportJSON()">📤 JSON</button>
+    <button class="btn bgh" onclick="document.getElementById('imp').click()">📥 Importer</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="loadJSONFile(event)">
+  </div>
+  <span class="sinf" id="sinf">Non sauvegardé</span>
+  <button class="btn bdang" onclick="doReset()">🗑 Réinitialiser</button>
+</div>
+</div>
+
+<!-- MODAL ÉLÈVES -->
+<div class="moverlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mhdr">
+      <h3>👤 Gestion des élèves</h3>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="startRealtimeSync();toast('🔄 Rafraîchissement...')" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:Barlow Condensed,sans-serif;font-weight:700" title="Rafraîchir depuis Firebase">🔄 Sync</button>
+        <button class="mclose" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="mbody">
+      <div id="slist-cont"></div>
+      <div class="nsf">
+        <h4>➕ Nouvel élève</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="nff"><label>Nom</label><input id="n-nom" type="text" placeholder="—" autocomplete="off"></div>
+          <div class="nff"><label>Prénom</label><input id="n-prenom" type="text" placeholder="—" autocomplete="off"></div>
+        </div>
+        <div class="nff" style="margin-bottom:4px">
+          <label>Ceinture de départ</label>
+          <select id="n-ceinture">
+            <option value="">— Sélectionner —</option>
+            <optgroup label="Ceintures et demi-ceintures">
+              <option>Blanche</option><option>Blanche – Jaune</option><option>Jaune</option>
+              <option>Jaune – Orange</option><option>Orange</option><option>Orange – Verte</option>
+              <option>Verte</option><option>Verte – Bleue</option><option>Bleue</option>
+              <option>Bleue – Marron</option><option>Marron</option><option>Marron – Noire</option>
+            </optgroup>
+            <optgroup label="Ceintures noires – Dans">
+              <option>Noire – 1er Dan</option><option>Noire – 2ème Dan</option><option>Noire – 3ème Dan</option>
+              <option>Noire – 4ème Dan</option><option>Noire – 5ème Dan</option><option>Noire – 6ème Dan</option>
+              <option>Noire – 7ème Dan</option><option>Noire – 8ème Dan</option><option>Noire – 9ème Dan</option>
+              <option>Noire – 10ème Dan</option>
+            </optgroup>
+          </select>
+        </div>
+        <!-- Bouton dans le corps = toujours visible sur mobile -->
+        <button class="create-btn-inline" onclick="createStudent()">✚ Créer l'élève</button>
+      </div>
+    </div>
+    <!-- Footer masqué sur mobile (bouton déjà dans le corps) -->
+    <div class="mfoot" style="display:none" id="modal-footer">
+      <button class="btn bprim" onclick="createStudent()">✚ Créer l'élève</button>
+      <button class="btn bgh" onclick="closeModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FIREBASE -->
+<div class="moverlay" id="fb-modal" onclick="if(event.target===this)closeFbModal()">
+  <div class="fb-modal">
+    <div class="mhdr" style="background:#1A4F72"><h3>🔥 Connexion Firebase (partage multi-profs)</h3><button class="mclose" onclick="closeFbModal()">✕</button></div>
+    <div class="mbody">
+      <div id="fb-connected-banner" style="display:none"></div>
+
+      <div class="fb-info">
+        <strong>Pourquoi Firebase ?</strong><br>
+        Firebase permet de partager les fiches entre <strong>plusieurs professeurs</strong> sur n'importe quel appareil, en temps réel.<br><br>
+        📌 C'est <strong>gratuit</strong> pour votre usage (jusqu'à 50 000 lectures/jour).<br>
+        📌 Vos données restent <strong>privées</strong> dans votre propre projet Firebase.<br>
+        📌 <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Créer un projet → Ajouter une app Web → Copier la config ci-dessous.
+      </div>
+
+      <div class="fb-info" style="background:#FFF8E1;border-color:var(--gold)">
+        <strong>Étapes rapides :</strong>
+        <ol class="fb-steps">
+          <li>Aller sur <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a></li>
+          <li>Créer un projet (ex : "FCM-Full-Contact")</li>
+          <li>Dans le projet → <strong>Firestore Database</strong> → Créer une base de données → Mode test</li>
+          <li>Dans Paramètres du projet → <strong>Ajouter une application Web</strong></li>
+          <li>Copier les valeurs du fichier de config et les coller ci-dessous</li>
+          <li>Partager ce fichier HTML avec vos collègues — ils verront les mêmes élèves !</li>
+        </ol>
+      </div>
+
+      <div class="fb-section"><label>API Key</label><input id="fb-apiKey" type="text" placeholder="AIzaSy..."></div>
+      <div class="fb-section"><label>Auth Domain</label><input id="fb-authDomain" type="text" placeholder="mon-projet.firebaseapp.com"></div>
+      <div class="fb-section"><label>Project ID</label><input id="fb-projectId" type="text" placeholder="mon-projet"></div>
+      <div class="fb-section"><label>App ID</label><input id="fb-appId" type="text" placeholder="1:123456789:web:abc..."></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn bprim" onclick="connectFirebase()">🔥 Connecter</button>
+      <button class="btn bdang" onclick="disconnectFirebase()" id="fb-disconnect-btn" style="display:none">Déconnecter</button>
+      <button class="btn bgh" onclick="closeFbModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// CONFIG
+// ══════════════════════════════════
+// Auth défini dans le script inline de l'overlay (voir plus haut)
+
+const PHASES=[
+  {code:'P1',name:'Reprise & Fondamentaux',period:'Sept–Oct 2026',color:'#1A6B8A',sessions:14,
+   items:['Garde, déplacements, pivots et équilibre','Poings : direct avant/arrière, crochet, uppercut','Pieds : chassé frontal, fouetté','Combinaisons de base poing-pied','Esquives & parades de base','Travail sac : puissance et précision','Introduction au sparring et règles FFKDa']},
+  {code:'P2',name:'Construction Technique',period:'Nov–Déc 2026',color:'#2E4057',sessions:13,
+   items:['Revers & circulaire retourné','Combinaisons H/M/B & variations rythmiques','Précision & puissance – pattes d\'ours','Jeu de jambes avancé & esquives spécifiques','Stratégie de combat – lecture de l\'adversaire','Sparring technique avec missions assignées','Examen de grade – 1ère session']},
+  {code:'P3',name:'Préparation Compétition',period:'Jan–Fév 2027',color:'#7B241C',sessions:11,
+   items:['Règles de compétition FFKDa','Simulations combats format officiel (3×2min)','Sparring – prise de décision en combat','Contre-attaques & feintes – drills','Stratégie selon le profil de l\'adversaire','Gestion énergie sur 3 rounds','Préparation mentale & visualisation']},
+  {code:'P4',name:'Perfectionnement & Examens',period:'Mars–Avr 2027',color:'#1A5E20',sessions:11,
+   items:['Enchaînements complexes 6-8 touches','Défense avancée & contre-attaque élaborée','Technique "signature" individuelle','Examen de grade – session principale','Introduction techniques niveau supérieur','PPE : explosivité & vitesse de démarrage']},
+  {code:'P5',name:'Compétition & Bilan de Saison',period:'Mai–Juin 2027',color:'#5B2C6F',sessions:14,
+   items:['Révision tactique finale','Sparring complet & préparation mentale','Debriefing compétitions & corrections','Tournoi interne par équipes mixtes','Préparation gala & démonstrations','Bilan individuel & évaluation finale de saison']},
+];
+
+const PHYS=[
+  {id:'v30',label:'Vitesse 30m',unit:'sec',lower:true},
+  {id:'gai',label:'Gainage ventral',unit:'sec',lower:false},
+  {id:'souple',label:'Souplesse',unit:'cm',lower:false},
+  {id:'cardio',label:'Cardio / VMA',unit:'km/h',lower:false},
+  {id:'tech',label:'Enchaîn. technique',unit:'/5',lower:false},
+];
+
+const SIDS=['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','tel','email','objectifs',
+  'g1d','g1g','g1o','g2d','g2g','g2o','g3d','g3g','g3o','grade-final','date-cloture',
+  'b-forts','b-axes','b-attitude','b-reco','b-libre'];
+
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+let curId=null, att=new Array(63).fill(0), tech={}, phys={}, gres={};
+let _loading=false;
+let db=null; // Firestore instance
+
+const KLIST='fcm_sl_2627';
+const KS=id=>'fcm_s_2627_'+id;
+const KCUR='fcm_cur_2627';
+const KFB='fcm_firebase_config';
+
+// ══════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CONFIGURATION FIREBASE — À remplir une seule fois          ║
+// ║  Collez vos valeurs Firebase ici, sauvegardez le fichier    ║
+// ║  et partagez-le à tous les profs. Plus besoin de configurer ║
+// ╚══════════════════════════════════════════════════════════════╝
+const FIREBASE_CONFIG = {
+  apiKey:      "AIzaSyDrASw_iU1DW6G24M7yxKZigeREYa5zOwk",
+  authDomain:  "fcm-full-contact.firebaseapp.com",
+  projectId:   "fcm-full-contact",
+  storageBucket:"fcm-full-contact.firebasestorage.app",
+  messagingSenderId:"869806093128",
+  appId:       "1:869806093128:web:401ff1e388fd0bc583397d",
+};
+// ↑ Laissez vide si vous préférez configurer via l'interface
+
+function initFirebase(cfg){
+  // Firebase ne fonctionne pas en file:// — nécessite un vrai serveur web
+  if(window.location.protocol==='file:'){
+    db=null;
+    setFbStatus(false,'Héberger le fichier',true);
+    document.getElementById('fb-label').title=
+      'Firebase nécessite un serveur web. Hébergez ce fichier sur GitHub Pages ou un serveur.';
+    console.warn('Firebase désactivé : protocole file:// non supporté. Hébergez le fichier sur un serveur web (ex: GitHub Pages).');
+    return false;
+  }
+  if(typeof firebase==='undefined'){
+    db=null;
+    setFbStatus(false,'SDK non chargé');
+    console.warn('Firebase SDK non chargé.');
+    return false;
+  }
+  try{
+    // Éviter double initialisation
+    if(firebase.apps.length>0){
+      firebase.apps.forEach(a=>a.delete());
+    }
+    const app=firebase.initializeApp(cfg);
+    db=firebase.firestore(app);
+    setFbStatus(true,'Connecté ☁️');
+    toast('🔥 Firebase connecté — synchronisation temps réel active !');
+    // Démarrer l'écoute temps réel de la liste des élèves
+    startRealtimeSync();
+    return true;
+  }catch(e){
+    console.error(e);
+    db=null;
+    setFbStatus(false,'Erreur connexion');
+    toast('Erreur Firebase : '+e.message);
+    return false;
+  }
+}
+
+function setFbStatus(ok, label, warn){
+  const dot=document.getElementById('fb-dot');
+  const lbl=document.getElementById('fb-label');
+  dot.className='fb-dot '+(ok?'ok':warn?'warn':'err');
+  if(!dot.className.includes('warn')){}
+  lbl.textContent=label;
+}
+
+function openFbModal(){
+  // Pré-remplir si config existante
+  const saved=localStorage.getItem(KFB);
+  if(saved){
+    try{
+      const cfg=JSON.parse(saved);
+      document.getElementById('fb-apiKey').value=cfg.apiKey||'';
+      document.getElementById('fb-authDomain').value=cfg.authDomain||'';
+      document.getElementById('fb-projectId').value=cfg.projectId||'';
+      document.getElementById('fb-appId').value=cfg.appId||'';
+    }catch{}
+  }
+  const banner=document.getElementById('fb-connected-banner');
+  const discBtn=document.getElementById('fb-disconnect-btn');
+  if(db){
+    const proj=document.getElementById('fb-projectId').value;
+    banner.style.display='flex';
+    banner.className='fb-connected';
+    banner.innerHTML=`<span class="icon">✅</span><div class="txt"><strong>Firebase connecté</strong><br>Projet : ${proj}<br>Toutes les fiches sont synchronisées en temps réel.</div>`;
+    discBtn.style.display='inline-flex';
+  }else{
+    banner.style.display='none';
+    discBtn.style.display='none';
+  }
+  document.getElementById('fb-modal').classList.add('open');
+}
+
+function closeFbModal(){document.getElementById('fb-modal').classList.remove('open');}
+
+function connectFirebase(){
+  const cfg={
+    apiKey:       document.getElementById('fb-apiKey').value.trim(),
+    authDomain:   document.getElementById('fb-authDomain').value.trim(),
+    projectId:    document.getElementById('fb-projectId').value.trim(),
+    appId:        document.getElementById('fb-appId').value.trim(),
+  };
+  if(!cfg.apiKey||!cfg.projectId){toast('Veuillez remplir au minimum l\'API Key et le Project ID.');return;}
+  if(initFirebase(cfg)){
+    localStorage.setItem(KFB,JSON.stringify(cfg));
+    closeFbModal();
+    // Recharger la liste depuis Firebase
+    syncListFromFirebase();
+  }
+}
+
+function disconnectFirebase(){
+  if(!confirm('Déconnecter Firebase ? Les données locales sont conservées.'))return;
+  if(_unsubscribeList){ _unsubscribeList(); _unsubscribeList=null; }
+  db=null;
+  firebase.apps.forEach(a=>a.delete());
+  localStorage.removeItem(KFB);
+  setFbStatus(false,'Non connecté');
+  closeFbModal();
+  toast('Firebase déconnecté. Mode local activé.');
+}
+
+// Sauvegarder un élève sur Firebase
+async function fbSave(id, data){
+  if(!db)return false;
+  try{
+    // On stocke tout en JSON dans un seul champ "payload"
+    // pour éviter les limitations Firestore (tableaux imbriqués, etc.)
+    const doc = {
+      meta: {
+        nom:      data.fields?.nom      || '',
+        prenom:   data.fields?.prenom   || '',
+        ceinture: data.fields?.ceinture || ''
+      },
+      payload: JSON.stringify(data)
+    };
+    await db.collection('students').doc(id).set(doc);
+    console.log('✅ fbSave OK:', id);
+    return true;
+  }catch(e){
+    console.error('❌ fbSave erreur:', e.code, e.message);
+    if(e.code==='permission-denied'){
+      toast('⚠️ Firebase : accès refusé. Vérifiez les règles Firestore.');
+      setFbStatus(false,'Règles Firestore expirées');
+    } else {
+      toast('⚠️ Erreur sauvegarde Firebase : '+e.message);
+    }
+    return false;
+  }
+}
+
+// Charger un élève depuis Firebase
+async function fbLoad(id){
+  if(!db)return null;
+  try{
+    const doc=await db.collection('students').doc(id).get();
+    if(!doc.exists) return null;
+    const d = doc.data();
+    // Nouveau format : données complètes dans "payload"
+    if(d.payload){
+      try{ return JSON.parse(d.payload); }
+      catch(e){ console.warn('fbLoad: payload JSON invalide', e); }
+    }
+    // Ancien format (rétrocompatibilité)
+    return d;
+  }catch(e){console.error('fbLoad',e);return null;}
+}
+
+// Supprimer un élève sur Firebase
+async function fbDelete(id){
+  if(!db)return;
+  try{await db.collection('students').doc(id).delete();}
+  catch(e){console.error('fbDelete',e);}
+}
+
+// ─ Écouteur temps réel : toute modif Firebase → mise à jour immédiate ─
+let _unsubscribeList = null; // pour détacher l'écouteur si besoin
+
+function startRealtimeSync(){
+  if(!db){ console.warn('startRealtimeSync: db null'); return; }
+  if(_unsubscribeList){ _unsubscribeList(); _unsubscribeList=null; }
+
+  console.log('🔄 Démarrage onSnapshot...');
+
+  _unsubscribeList = db.collection('students').onSnapshot(snap=>{
+    const fbStudents=[];
+    snap.forEach(doc=>{
+      const d=doc.data();
+      // Nouveau format : meta.nom / Ancien format : fields.nom
+      fbStudents.push({
+        id:       doc.id,
+        nom:      d.meta?.nom      || d.fields?.nom      || '',
+        prenom:   d.meta?.prenom   || d.fields?.prenom   || '',
+        ceinture: d.meta?.ceinture || d.fields?.ceinture || ''
+      });
+    });
+
+    // Source de vérité = Firebase
+    localStorage.setItem(KLIST, JSON.stringify(fbStudents));
+
+    // Rafraîchir le modal TOUJOURS (ouvert ou pas, pour la prochaine ouverture)
+    renderSlist();
+
+    // Mettre à jour badge élève actif si renommé par un autre prof
+    if(curId){
+      const me=fbStudents.find(s=>s.id===curId);
+      if(me){
+        const full=(me.prenom+' '+me.nom).trim();
+        document.getElementById('cur-display').textContent=full||'Élève sans nom';
+      }
+    }
+
+    const now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setFbStatus(true, `Connecté ☁️ · ${fbStudents.length} élève(s) · ${now}`);
+    console.log('✅ onSnapshot reçu :', fbStudents.length, 'élève(s)');
+
+  }, err=>{
+    console.error('❌ onSnapshot erreur:', err.code, err.message);
+    setFbStatus(false, 'Erreur sync : '+err.code);
+    // Message visible à l'utilisateur
+    if(err.code==='permission-denied'){
+      toast('⚠️ Firebase : accès refusé. Mettez à jour les règles Firestore dans la console Firebase.');
+    } else {
+      toast('⚠️ Firebase sync erreur : '+err.message);
+    }
+  });
+}
+
+async function syncListFromFirebase(){
+  startRealtimeSync();
+}
+
+// ══════════════════════════════════
+// TABS
+// ══════════════════════════════════
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+
+// ══════════════════════════════════
+// ATTENDANCE
+// ══════════════════════════════════
+function buildAtt(){
+  const cont=document.getElementById('att-cont');
+  cont.innerHTML='';
+  let sn=0;
+  PHASES.forEach(ph=>{
+    const lbl=document.createElement('div');
+    lbl.className='ph-label';
+    lbl.style.background=ph.color;
+    lbl.innerHTML=`<strong>${ph.code}</strong><span>${ph.name} · ${ph.period} · ${ph.sessions} séances</span>`;
+    cont.appendChild(lbl);
+    const grid=document.createElement('div');
+    grid.className='sg';
+    for(let i=0;i<ph.sessions;i++){
+      const idx=sn;sn++;
+      const cell=document.createElement('div');
+      cell.className='sc';
+      cell.style.borderColor=ph.color;
+      const num=document.createElement('div');
+      num.className='sn';num.style.background=ph.color;num.textContent='S'+(idx+1);
+      const row=document.createElement('div');row.className='sbr';
+      const bp=document.createElement('div');
+      bp.className='sb';bp.id='bp'+idx;bp.textContent='✓';
+      bp.addEventListener('click',function(){toggleAtt(idx,1);});
+      const ba=document.createElement('div');
+      ba.className='sb';ba.id='ba'+idx;ba.textContent='✗';
+      ba.addEventListener('click',function(){toggleAtt(idx,-1);});
+      row.appendChild(bp);row.appendChild(ba);
+      cell.appendChild(num);cell.appendChild(row);
+      grid.appendChild(cell);
+    }
+    cont.appendChild(grid);
+  });
+  refreshAtt();
+}
+
+function toggleAtt(idx,val){
+  att[idx]=(att[idx]===val)?0:val;
+  refreshAtt();markUnsaved();
+}
+
+function refreshAtt(){
+  let p=0,a=0;
+  for(let i=0;i<63;i++){
+    const bp=document.getElementById('bp'+i);
+    const ba=document.getElementById('ba'+i);
+    if(!bp||!ba)continue;
+    bp.className='sb'+(att[i]===1?' ok':'');
+    ba.className='sb'+(att[i]===-1?' ko':'');
+    if(att[i]===1)p++;if(att[i]===-1)a++;
+  }
+  const rem=63-p-a;
+  document.getElementById('s-pres').textContent=p;
+  document.getElementById('s-abs').textContent=a;
+  document.getElementById('s-rem').textContent=rem;
+  document.getElementById('s-pct').textContent=(p+a)>0?Math.round(p/(p+a)*100)+'%':'—';
+}
+
+// ══════════════════════════════════
+// TECHNIQUE
+// ══════════════════════════════════
+function buildTech(){
+  const cont=document.getElementById('tech-cont');cont.innerHTML='';
+  const opts=['—','○','△','◑','●'];
+  PHASES.forEach(ph=>{
+    const sec=document.createElement('div');sec.className='ph-sec';
+    const hdr=document.createElement('div');hdr.className='ph-hdr';hdr.style.background=ph.color;
+    hdr.innerHTML=`<div class="ph-hdr-l"><span class="ph-code">${ph.code}</span><span class="ph-name">${ph.name}</span><span class="ph-per">${ph.period}</span></div><span class="ph-chev">▼</span>`;
+    const tbl=document.createElement('table');tbl.className='tt';
+    tbl.innerHTML=`<thead><tr><th style="width:40%">Élément technique</th><th class="c" style="width:9%">Déb.</th><th class="c" style="width:9%">Inter.</th><th class="c" style="width:9%">Avancé</th><th>Observations</th></tr></thead>`;
+    const tb=document.createElement('tbody');
+    ph.items.forEach((item,idx)=>{
+      const tr=document.createElement('tr');
+      let h=`<td>${item}</td>`;
+      ['deb','inter','av'].forEach(niv=>{
+        const k=`${ph.code}-${idx}-${niv}`;const cur=tech[k]||'—';
+        h+=`<td class="c"><select class="esel" onchange="tech['${k}']=this.value;markUnsaved()">${opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('')}</select></td>`;
+      });
+      const ok=`${ph.code}-${idx}-obs`;
+      h+=`<td><input class="oinp" type="text" value="${e(tech[ok]||'')}" placeholder="—" oninput="tech['${ok}']=this.value;markUnsaved()"></td>`;
+      tr.innerHTML=h;tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    hdr.addEventListener('click',()=>{
+      const open=!hdr.classList.contains('collapsed');
+      hdr.classList.toggle('collapsed',open);
+      tbl.style.display=open?'none':'table';
+    });
+    sec.appendChild(hdr);sec.appendChild(tbl);cont.appendChild(sec);
+  });
+}
+
+function e(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+// ══════════════════════════════════
+// PHYSIQUE
+// ══════════════════════════════════
+function buildPhys(){
+  const cont=document.getElementById('phys-cont');cont.innerHTML='';
+  PHYS.forEach(t=>{
+    const card=document.createElement('div');card.className='pc';
+    card.innerHTML=`<div class="pch">${t.label} (${t.unit})</div>`;
+    [['in','Sept. 2026'],['mid','Jan. 2027'],['out','Juin 2027']].forEach(([sfx,lbl])=>{
+      const k=`${t.id}-${sfx}`;
+      const row=document.createElement('div');row.className='pr';
+      row.innerHTML=`<label>${lbl}</label><input type="text" value="${e(phys[k]||'')}" placeholder="—" oninput="phys['${k}']=this.value;markUnsaved();refreshEvol('${t.id}')">`;
+      card.appendChild(row);
+    });
+    const er=document.createElement('div');er.className='pr';er.style.cssText='background:#f9f9f9;border-top:2px solid var(--g4)';
+    er.id='evol-'+t.id;er.innerHTML=`<label>Évolution</label><span class="ea" style="color:var(--g3)">—</span>`;
+    card.appendChild(er);cont.appendChild(card);refreshEvol(t.id);
+  });
+}
+
+function refreshEvol(id){
+  const t=PHYS.find(x=>x.id===id);const row=document.getElementById('evol-'+id);if(!row)return;
+  const iv=parseFloat(phys[id+'-in']),ov=parseFloat(phys[id+'-out']);
+  const span=row.querySelector('.ea');
+  if(!isNaN(iv)&&!isNaN(ov)){const better=t.lower?ov<iv:ov>iv;span.textContent=better?'▲':'▼';span.style.color=better?'#2ecc71':'#e74c3c';}
+  else{span.textContent='—';span.style.color='var(--g3)';}
+}
+
+// ══════════════════════════════════
+// COMPÉTITIONS
+// ══════════════════════════════════
+function addCompRow(v){
+  v=v||['','','','',''];
+  const tb=document.getElementById('comp-body');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="text" value="${e(v[0])}" placeholder="Nom du tournoi" oninput="markUnsaved()"></td><td><input type="date" value="${v[1]}" oninput="markUnsaved()"></td><td><input type="text" value="${e(v[2])}" placeholder="Ville…" oninput="markUnsaved()"></td><td><input type="text" value="${e(v[3])}" placeholder="Résultat" oninput="markUnsaved()"></td><td style="display:flex;align-items:center;gap:4px"><input type="text" value="${e(v[4])}" placeholder="Analyse…" oninput="markUnsaved()"><span onclick="this.closest('tr').remove();markUnsaved()" style="cursor:pointer;color:var(--g3);font-size:16px;padding:2px 5px;flex-shrink:0">✕</span></td>`;
+  tb.appendChild(tr);
+}
+
+// ══════════════════════════════════
+// GRADE BADGES
+// ══════════════════════════════════
+function toggleR(el){
+  const grp=el.dataset.grp,cls=el.dataset.cls;
+  document.querySelectorAll(`[data-grp="${grp}"]`).forEach(b=>b.classList.remove('recu','ajourne','refuse'));
+  if(gres[grp]!==cls){el.classList.add(cls);gres[grp]=cls;}else{gres[grp]=null;}
+  markUnsaved();
+}
+
+function applyGres(){
+  ['g1','g2','g3'].forEach(grp=>{
+    document.querySelectorAll(`[data-grp="${grp}"]`).forEach(b=>b.classList.remove('recu','ajourne','refuse'));
+    if(gres[grp]){const el=document.querySelector(`[data-grp="${grp}"][data-cls="${gres[grp]}"]`);if(el)el.classList.add(gres[grp]);}
+  });
+}
+
+// ══════════════════════════════════
+// COLLECT / APPLY
+// ══════════════════════════════════
+function collect(){
+  const fields={};
+  SIDS.forEach(id=>{const el=document.getElementById(id);if(el)fields[id]=el.value;});
+  const comp=[];
+  document.querySelectorAll('#comp-body tr').forEach(tr=>{comp.push(Array.from(tr.querySelectorAll('input')).map(i=>i.value));});
+  return{fields,att:[...att],tech:{...tech},phys:{...phys},gres:{...gres},comp};
+}
+
+function apply(data){
+  att=new Array(63).fill(0);tech={};phys={};gres={};
+  if(data.fields)SIDS.forEach(id=>{const el=document.getElementById(id);if(el&&data.fields[id]!==undefined)el.value=data.fields[id];});
+  if(data.att)att=data.att.slice();
+  if(data.tech)tech={...data.tech};
+  if(data.phys)phys={...data.phys};
+  if(data.gres)gres={...data.gres};
+  buildAtt();buildTech();buildPhys();applyGres();
+  document.getElementById('comp-body').innerHTML='';
+  if(data.comp&&data.comp.length)data.comp.forEach(r=>addCompRow(r));
+  else{addCompRow();addCompRow();addCompRow();}
+  updateDisplay();
+}
+
+// ══════════════════════════════════
+// SAVE / LOAD
+// ══════════════════════════════════
+function getList(){try{return JSON.parse(localStorage.getItem(KLIST))||[];}catch{return[];}}
+
+async function saveData(){
+  if(!curId){toast('Veuillez sélectionner ou créer un élève.');openModal();return;}
+  const data=collect();
+
+  // 1. Local
+  localStorage.setItem(KS(curId),JSON.stringify(data));
+
+  // 2. Firebase (si connecté)
+  let fbOk=false;
+  if(db){
+    setSinf('⏳ Synchronisation…','bad');
+    fbOk=await fbSave(curId,data);
+  }
+
+  // 3. Mise à jour liste
+  const nom=document.getElementById('nom').value;
+  const prenom=document.getElementById('prenom').value;
+  const ceinture=document.getElementById('ceinture').value;
+  const list=getList();
+  const entry=list.find(s=>s.id===curId);
+  if(entry){entry.nom=nom;entry.prenom=prenom;entry.ceinture=ceinture;}
+  localStorage.setItem(KLIST,JSON.stringify(list));
+
+  const now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const where=db?(fbOk?'+ Firebase ☁️':'(Firebase HS)'):'navigateur';
+  setSinf('✓ Sauvegardé à '+now+' — '+where,'ok');
+  toast('💾 Sauvegardé '+(db&&fbOk?'localement & sur Firebase ☁️':'localement'));
+}
+
+async function loadStudent(id){
+  // Sauvegarde auto de l'élève actif avant switch
+  if(curId&&curId!==id){
+    const prev=collect();
+    localStorage.setItem(KS(curId),JSON.stringify(prev));
+    if(db)await fbSave(curId,prev);
+    const list=getList();
+    const entry=list.find(s=>s.id===curId);
+    if(entry){entry.nom=document.getElementById('nom').value;entry.prenom=document.getElementById('prenom').value;entry.ceinture=document.getElementById('ceinture').value;}
+    localStorage.setItem(KLIST,JSON.stringify(list));
+  }
+
+  curId=id;localStorage.setItem(KCUR,id);
+  _loading=true;
+
+  // Essayer Firebase d'abord, sinon local
+  let data=null;
+  if(db){
+    setSinf('⏳ Chargement Firebase…','bad');
+    data=await fbLoad(id);
+  }
+  if(!data){
+    const raw=localStorage.getItem(KS(id));
+    try{data=raw?JSON.parse(raw):{};}catch{data={};}
+  }
+
+  apply(data);
+  _loading=false;
+  setSinf('✓ Fiche chargée','ok');
+  closeModal();
+  toast('Fiche chargée : '+dname(id));
+}
+
+function dname(id){const s=getList().find(x=>x.id===id);return s?((s.prenom+' '+s.nom).trim()||'Sans nom'):'?';}
+function updateDisplay(){
+  if(!curId)return;
+  const nom=document.getElementById('nom').value,prenom=document.getElementById('prenom').value;
+  document.getElementById('cur-display').textContent=(prenom+' '+nom).trim()||'Élève sans nom';
+}
+
+// ══════════════════════════════════
+// RESET
+// ══════════════════════════════════
+function doReset(){
+  if(!window.confirm(curId?'Effacer toutes les données de cette fiche ? (Irréversible)':'Réinitialiser le formulaire ?'))return;
+  SIDS.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  att=new Array(63).fill(0);tech={};phys={};gres={};
+  buildAtt();buildTech();buildPhys();applyGres();
+  document.getElementById('comp-body').innerHTML='';
+  addCompRow();addCompRow();addCompRow();
+  if(curId){
+    localStorage.removeItem(KS(curId));
+    if(db)fbDelete(curId);
+  }
+  setSinf('Fiche réinitialisée','bad');
+  toast('Fiche réinitialisée.');
+}
+
+// ══════════════════════════════════
+// EXPORT / IMPORT
+// ══════════════════════════════════
+function exportJSON(){
+  const data=collect();
+  const nom=document.getElementById('nom').value||'eleve';
+  const prenom=document.getElementById('prenom').value||'';
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`Fiche_${prenom}_${nom}_FC2627.json`.replace(/\s+/g,'_');
+  a.click();
+  toast('Fichier JSON téléchargé.');
+}
+
+function loadJSONFile(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev2=>{try{apply(JSON.parse(ev2.target.result));toast('Fiche importée !');markUnsaved();}catch{toast('Erreur : JSON invalide.');}};
+  r.readAsText(f);ev.target.value='';
+}
+
+function exportPDF(){
+  if(curId){localStorage.setItem(KS(curId),JSON.stringify(collect()));}
+  const nom=document.getElementById('nom').value||'Sans nom';
+  const prenom=document.getElementById('prenom').value||'';
+  toast('🖨 Impression de '+(prenom+' '+nom).trim()+'… choisissez "Enregistrer en PDF"');
+  setTimeout(()=>window.print(),600);
+}
+
+// ══════════════════════════════════
+// MODAL ÉLÈVES
+// ══════════════════════════════════
+function openModal(){
+  document.getElementById('modal').classList.add('open');
+  if(db){
+    // Toujours relancer l'écouteur pour garantir données fraîches
+    startRealtimeSync();
+  } else {
+    renderSlist();
+  }
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+function renderSlist(){
+  const cont=document.getElementById('slist-cont');
+  const list=getList();
+  if(!list.length){cont.innerHTML='<div class="empty">Aucun élève enregistré.<br>Créez votre premier élève ci-dessous.</div>';return;}
+  cont.innerHTML='<div class="slist">'+list.map(s=>{
+    const full=(s.prenom+' '+s.nom).trim()||'Sans nom';
+    const ic=s.id===curId;
+    return`<div class="sitem${ic?' cur':''}" data-id="${s.id}">
+      <div class="sinfo">
+        <div class="sname">${full}${ic?' <span style="color:var(--gold);font-size:10px">● actif</span>':''}</div>
+        <div class="ssub">${s.ceinture||'Ceinture non renseignée'}</div>
+      </div>
+      <div class="sacts">
+        <button class="bsm bsml" data-action="load" data-id="${s.id}">Charger</button>
+        <button class="bsm bsmd" data-action="del" data-id="${s.id}">✕</button>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+
+  cont.onclick=function(ev){
+    const btn=ev.target.closest('[data-action]');if(!btn)return;
+    const id=btn.dataset.id,action=btn.dataset.action;
+    if(action==='load')loadStudent(id);
+    else if(action==='del')delStudent(id);
+  };
+}
+
+async function createStudent(){
+  const nom=document.getElementById('n-nom').value.trim();
+  const prenom=document.getElementById('n-prenom').value.trim();
+  const ceinture=document.getElementById('n-ceinture').value;
+  if(!nom&&!prenom){toast('Entrez au moins un nom ou un prénom.');return;}
+  const id='std_'+Date.now();
+
+  // Données initiales de l'élève
+  const initData = {
+    fields:{nom,prenom,ceinture,ddn:'',licence:'',poids:'',categorie:'',parent:'',tel:'',email:'',objectifs:''},
+    att:new Array(63).fill(0),
+    tech:{},phys:{},gres:{},comp:[]
+  };
+
+  // 1. Sauvegarder localement
+  const list=getList();
+  list.push({id,nom,prenom,ceinture});
+  localStorage.setItem(KLIST,JSON.stringify(list));
+  localStorage.setItem(KS(id),JSON.stringify(initData));
+
+  // 2. Sauvegarder sur Firebase via fbSave (gère le bon format)
+  if(db){
+    const ok = await fbSave(id, initData);
+    if(ok){
+      toast('✅ Élève créé et synchronisé : '+(prenom+' '+nom).trim());
+    } else {
+      toast('Élève créé localement (erreur Firebase)');
+    }
+  }
+
+  // Reset form
+  document.getElementById('n-nom').value='';
+  document.getElementById('n-prenom').value='';
+  document.getElementById('n-ceinture').value='';
+
+  // Charger le nouvel élève
+  await loadStudent(id);
+  document.getElementById('nom').value=nom;
+  document.getElementById('prenom').value=prenom;
+  document.getElementById('ceinture').value=ceinture;
+  updateDisplay();
+}
+
+function delStudent(id){
+  const name=dname(id);
+  const existing=document.getElementById('del-confirm-'+id);
+  if(existing){existing.remove();return;}
+  const sitem=document.querySelector(`.sitem[data-id="${id}"]`);
+  if(!sitem)return;
+  const bar=document.createElement('div');
+  bar.id='del-confirm-'+id;bar.className='confirm-bar';
+  bar.innerHTML=`<span>Supprimer ${name} ?</span>
+    <button class="bsm" style="background:#e74c3c;color:white" id="del-yes-${id}">Oui, supprimer</button>
+    <button class="bsm bsmd" id="del-no-${id}">Annuler</button>`;
+  sitem.after(bar);
+  document.getElementById('del-yes-'+id).onclick=async function(){
+    const list=getList().filter(s=>s.id!==id);
+    localStorage.setItem(KLIST,JSON.stringify(list));
+    localStorage.removeItem(KS(id));
+    if(db)await fbDelete(id);
+    if(curId===id){curId=null;document.getElementById('cur-display').textContent='Sélectionner un élève';}
+    renderSlist();
+    toast('Fiche de '+name+' supprimée.');
+  };
+  document.getElementById('del-no-'+id).onclick=function(){bar.remove();};
+}
+
+// ══════════════════════════════════
+// UTILS
+// ══════════════════════════════════
+function markUnsaved(){if(_loading)return;setSinf('● Modifications non sauvegardées','bad');}
+function setSinf(msg,cls){const el=document.getElementById('sinf');el.textContent=msg;el.className='sinf'+(cls?' '+cls:'');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+async function appInit(){
+  buildAtt();buildTech();buildPhys();
+  addCompRow();addCompRow();addCompRow();
+
+  // Connexion Firebase : priorité au config codé en dur, sinon localStorage
+  const hasHardcoded = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId;
+  if(hasHardcoded){
+    initFirebase(FIREBASE_CONFIG);
+    document.getElementById('fb-apiKey').value     = FIREBASE_CONFIG.apiKey;
+    document.getElementById('fb-authDomain').value = FIREBASE_CONFIG.authDomain;
+    document.getElementById('fb-projectId').value  = FIREBASE_CONFIG.projectId;
+    document.getElementById('fb-appId').value      = FIREBASE_CONFIG.appId;
+  } else {
+    const fbCfg=localStorage.getItem(KFB);
+    if(fbCfg){try{initFirebase(JSON.parse(fbCfg));}catch{}}
+  }
+
+  // Charger dernier élève
+  const last=localStorage.getItem(KCUR);
+  const list=getList();
+  if(last&&list.find(s=>s.id===last)){
+    await loadStudent(last);
+  }else{
+    document.getElementById('cur-display').textContent='Sélectionner un élève';
+  }
+
+  // Auto-save toutes les 2 minutes
+  setInterval(async()=>{if(curId)await saveData();},120000);
+
+  document.addEventListener('input',()=>{if(!_loading)markUnsaved();});
+  document.addEventListener('change',()=>{if(!_loading)markUnsaved();});
+
+  // Focus auto sur le champ mot de passe si non connecté
+  if(!checkAuth()) setTimeout(()=>{
+    const el = document.getElementById('pw-input');
+    if(el) el.focus();
+  }, 200);
+}
+</script>
+<!-- Firebase SDK chargé en dernier pour garantir la disponibilité -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  // Lancer l'app une fois le DOM ET Firebase chargés
+  document.addEventListener('DOMContentLoaded', function(){
+    appInit();
+  });
+</script>
+</body>
+</html>
