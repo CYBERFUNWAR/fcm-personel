@@ -598,6 +598,10 @@ function applyDeleteRestrictions(){
   if(tb) tb.style.display = isAdmin() ? '' : 'none';
   var rb = document.getElementById('btn-reset');
   if(rb) rb.style.display = isAdmin() ? '' : 'none';
+  // Barre allégée pour les modérateurs : seuls Appel et Sauvegarder restent visibles
+  document.querySelectorAll('.admin-only').forEach(function(el){
+    el.style.display = isAdmin() ? '' : 'none';
+  });
 }
 
 // ── Mode lecture seule (rôle Élève) ──
@@ -791,6 +795,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
 
 <!-- PANEL 1 : IDENTITÉ -->
 <div class="panel active" id="panel-0">
+  <div id="alerte-decrochage" style="display:none;margin-bottom:10px;padding:10px 14px;border:2px solid #E65100;background:#FFF3E0;border-radius:10px;font-size:13px;font-weight:700;color:#B34700"></div>
   <div class="sh"><div class="sb"></div><h2>Identité de l'élève</h2><button id="btn-transfer" onclick="openTransfer()" title="Déplacer la fiche complète de cet élève vers un autre groupe (Enfants → Ados → Adultes…)" style="margin-left:auto;padding:7px 12px;border:1.5px solid var(--red,#7B0000);border-radius:8px;background:#fff;color:var(--red,#7B0000);font-size:11.5px;font-weight:700;cursor:pointer;display:none">🔄 Changer de groupe</button></div>
 
   <!-- Zone photo + champs principaux -->
@@ -988,10 +993,12 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
   <div class="brow">
     <button class="btn" id="btn-appel" onclick="openAppel()" style="background:var(--gold,#C9A84C);color:#3A2C00;font-weight:800">📋 Appel</button>
   <button class="btn bprim" onclick="saveData()">💾 Sauvegarder</button>
-    <button class="btn bpdf" onclick="exportPDF()">🖨 PDF</button>
-    <button class="btn bgh" onclick="seasonReport()" title="Bilan de fin de saison imprimable">📅 Bilan de saison</button>
-    <button class="btn bgh" onclick="exportJSON()">📤 JSON</button>
-    <button class="btn bgh" onclick="document.getElementById('imp').click()">📥 Importer</button>
+    <button class="btn bpdf admin-only" onclick="exportPDF()">🖨 PDF</button>
+    <button class="btn bgh admin-only" onclick="seasonReport()" title="Bilan de fin de saison imprimable">📅 Bilan de saison</button>
+    <button class="btn bgh admin-only" onclick="exportJSON()">📤 JSON</button>
+    <button class="btn bgh admin-only" onclick="document.getElementById('imp').click()">📥 Importer</button>
+    <button class="btn bgh admin-only" onclick="openJournal()" title="Journal des séances validées : dates, signatures, présents, notes, décrochages">📖 Journal</button>
+    <button class="btn bgh admin-only" onclick="openBackup()" title="Sauvegarde et restauration complète du groupe">🗄 Sauvegarde</button>
     <button class="btn bgh" id="btn-contacts" onclick="openContacts()" style="display:none">📇 Contacts</button>
     <input type="file" id="imp" accept=".json" style="display:none" onchange="loadJSONFile(event)">
   </div>
@@ -1234,6 +1241,7 @@ function switchGroup(gid){
   document.querySelectorAll('.panel').forEach(p => { /* reset fields */ });
   // Relancer la sync Firebase pour ce groupe
   if(db) startRealtimeSync();
+  if(db) syncSeancesJournal();
   // Rafraîchir la liste
   renderSlist();
   // Charger le dernier élève de ce groupe (ou vider le formulaire)
@@ -1687,6 +1695,11 @@ function buildAtt(){
 
 function toggleAtt(idx,val){
   if(typeof isViewer==='function' && isViewer()) return; // lecture seule
+  // Séance validée par appel : modification réservée à l'administrateur
+  if(typeof isAdmin==='function' && !isAdmin() && localStorage.getItem(_seanceKey(curGroup, idx))){
+    toast('🔒 Séance '+(idx+1)+' validée par appel — modification réservée à l\'administrateur.');
+    return;
+  }
   att[idx]=(att[idx]===val)?0:val;
   refreshAtt();markUnsaved();
 }
@@ -1694,6 +1707,7 @@ function toggleAtt(idx,val){
 function getAttCount(){ return (GROUPS[curGroup]&&GROUPS[curGroup].attCount)||63; }
 
 function refreshAtt(){
+  try{ checkDecrochage(); }catch(e){}
   const total=getAttCount();
   let p=0,a=0;
   for(let i=0;i<total;i++){
@@ -1961,6 +1975,19 @@ async function doTransfer(target){
 var _appel = { idx:0, total:0, docs:{}, present:{}, list:[] };
 
 function _seanceKey(gid, idx){ return CLUB.prefixe+'_seance_'+CLUB.saisonCle+'_'+gid+'_'+idx; }
+function syncSeancesJournal(){
+  if(!db) return Promise.resolve();
+  return db.collection('seances_journal').get().then(function(snap){
+    snap.forEach(function(doc){
+      var id = doc.id; // format : saison_groupe_index
+      if (id.indexOf(CLUB.saisonCle + '_') !== 0) return;
+      var rest = id.slice((CLUB.saisonCle + '_').length);
+      var us = rest.lastIndexOf('_');
+      if (us < 0) return;
+      localStorage.setItem(CLUB.prefixe+'_seance_'+CLUB.saisonCle+'_'+rest.slice(0,us)+'_'+rest.slice(us+1), JSON.stringify(doc.data()));
+    });
+  }).catch(function(){});
+}
 function _profKey(){ return CLUB.prefixe+'_prof_'+CLUB.saisonCle; }
 
 // Libellé contextuel de la séance (phase pédagogique ou mois selon le groupe)
@@ -2003,7 +2030,7 @@ function openAppel(){
         });
       }).catch(function(){ /* mode local */ })
     : Promise.resolve();
-  loadDocs.then(function(){
+  Promise.all([loadDocs, syncSeancesJournal()]).then(function(){
     // Compléter avec les copies locales (élèves hors ligne / non synchronisés)
     _appel.list.forEach(function(s){
       if (!_appel.docs[s.id] || !_appel.docs[s.id].data){
@@ -2038,7 +2065,7 @@ function renderAppel(){
   ov.id = 'appel-ov';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:center;justify-content:center;padding:14px';
   ov.innerHTML =
-    '<div style="background:#FFFDF8;border-radius:16px;max-width:760px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
+    '<div style="background:#FFFDF8;border-radius:16px;max-width:980px;width:100%;max-height:96vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
     + '<div style="background:var(--red,#7B0000);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
     +   '<div style="font-weight:900;font-size:16px">📋 Appel — ' + (GROUPS[curGroup].label || '') + '</div>'
     +   '<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'
@@ -2047,20 +2074,21 @@ function renderAppel(){
     +     '<button onclick="appelNav(1)" style="border:none;background:rgba(255,255,255,.18);color:#fff;border-radius:7px;padding:5px 11px;font-size:15px;cursor:pointer">▶</button>'
     +   '</div>'
     + '</div>'
+    + '<div id="appel-lock" style="display:none;padding:9px 16px;background:#FDEBD0;border-bottom:1.5px solid var(--gold,#C9A84C);font-size:12.5px;font-weight:700;color:#7A5A00"></div>'
     + '<div style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #EEE;flex-wrap:wrap">'
     +   '<label style="font-size:11px;font-weight:700;color:#7B0000">DATE <input type="date" id="appel-date" style="margin-left:5px;padding:5px 7px;border:1px solid #DDD;border-radius:7px;font-size:13px"></label>'
-    +   '<button onclick="appelTous(true)" style="border:1.5px solid #1A5E20;background:#E8F5E9;color:#1A5E20;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">✓ Tous présents</button>'
-    +   '<button onclick="appelTous(false)" style="border:1.5px solid #999;background:#F4F4F4;color:#555;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">✗ Tout effacer</button>'
-    +   '<div id="appel-count" style="margin-left:auto;font-weight:900;font-size:16px;color:var(--red,#7B0000)"></div>'
+    +   '<button id="appel-btn-tous" onclick="appelTous(true)" style="border:1.5px solid #1A5E20;background:#E8F5E9;color:#1A5E20;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">✓ Tous présents</button>'
+    +   '<button id="appel-btn-rien" onclick="appelTous(false)" style="border:1.5px solid #999;background:#F4F4F4;color:#555;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">✗ Tout effacer</button>'
+    +   '<div id="appel-count" style="margin-left:auto;font-weight:900;font-size:19px;color:var(--red,#7B0000);background:#FBF7EC;border:1.5px solid var(--gold,#C9A84C);border-radius:9px;padding:5px 13px"></div>'
     + '</div>'
-    + '<div id="appel-grid" style="padding:14px 16px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:9px"></div>'
+    + '<div id="appel-grid" style="padding:14px 16px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px"></div>'
     + '<div style="border-top:1px solid #EEE;padding:11px 16px;background:#FBF7EC">'
     +   '<textarea id="appel-note" placeholder="Note de séance : RAS, incident, blessure, matériel, remarque…" style="width:100%;min-height:42px;padding:8px 10px;border:1px solid #E2D9BE;border-radius:8px;font-size:13px;box-sizing:border-box"></textarea>'
     +   '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'
     +     '<label style="font-size:11px;font-weight:700;color:#7B0000">SIGNÉ PAR <input type="text" id="appel-prof" placeholder="Nom du prof" style="margin-left:5px;padding:6px 9px;border:1px solid #DDD;border-radius:7px;font-size:13px;width:150px"></label>'
     +     '<div style="margin-left:auto;display:flex;gap:8px">'
     +       '<button onclick="closeAppel()" style="border:none;background:#EEE;border-radius:9px;padding:10px 16px;font-size:13px;cursor:pointer">Annuler</button>'
-    +       '<button onclick="validerAppel()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:800;cursor:pointer">✅ Valider l\'appel</button>'
+    +       '<button id="appel-btn-valider" onclick="validerAppel()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:800;cursor:pointer">✅ Valider l\'appel</button>'
     +     '</div>'
     +   '</div>'
     + '</div>'
@@ -2091,6 +2119,30 @@ function appelInitSession(){
   }catch(e){}
   var lbl = seanceLabel(idx);
   document.getElementById('appel-session').textContent = 'Séance ' + (idx+1) + ' / ' + _appel.total + (lbl ? ' · ' + lbl : '');
+  // ── Verrouillage : séance déjà validée + rôle modérateur ──
+  var journal = null;
+  try{ journal = JSON.parse(localStorage.getItem(_seanceKey(curGroup, idx))); }catch(e){}
+  _appel.locked = !!journal && typeof isAdmin === 'function' && !isAdmin();
+  ['appel-date','appel-note','appel-prof'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.disabled = _appel.locked;
+  });
+  ['appel-btn-tous','appel-btn-rien','appel-btn-valider'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.style.display = _appel.locked ? 'none' : '';
+  });
+  var lk = document.getElementById('appel-lock');
+  if (lk){
+    if (_appel.locked){
+      lk.style.display = '';
+      lk.textContent = '🔒 Séance validée' + (journal.date ? ' le ' + journal.date.split('-').reverse().join('/') : '') + (journal.prof ? ' par ' + journal.prof : '') + ' — modification réservée à l\'administrateur.';
+    } else if (journal){
+      lk.style.display = '';
+      lk.style.background = '#E8F5E9'; lk.style.color = '#1A5E20'; lk.style.borderBottomColor = '#1A9E30';
+      lk.textContent = '✔ Séance déjà validée' + (journal.date ? ' le ' + journal.date.split('-').reverse().join('/') : '') + (journal.prof ? ' par ' + journal.prof : '') + ' — vous pouvez la modifier (admin).';
+    } else {
+      lk.style.display = 'none';
+      lk.style.background = '#FDEBD0'; lk.style.color = '#7A5A00'; lk.style.borderBottomColor = 'var(--gold,#C9A84C)';
+    }
+  }
   appelDrawGrid();
 }
 
@@ -2100,16 +2152,18 @@ function appelDrawGrid(){
   _appel.list.forEach(function(s){
     var on = _appel.present[s.id];
     var chip = document.createElement('button');
-    chip.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:11px;cursor:pointer;text-align:left;transition:all .1s;border:2px solid ' + (on ? '#1A5E20' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA');
+    chip.style.cssText = 'position:relative;display:flex;flex-direction:column;padding:0;border-radius:14px;cursor:pointer;overflow:hidden;transition:all .1s;border:3px solid ' + (on ? '#1A9E30' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA') + (on ? ';box-shadow:0 4px 14px rgba(26,158,48,.3)' : '');
     var photo = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     var avatar = photo
-      ? '<img src="'+photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">'
-      : '<div style="width:34px;height:34px;border-radius:50%;background:'+(on?'#1A5E20':'#BBB')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div>';
+      ? '<img src="'+photo+'" style="width:100%;height:130px;object-fit:cover;object-position:center top;display:block'+(on?'':';filter:grayscale(.55) opacity(.75)')+'">'
+      : '<div style="width:100%;height:130px;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:38px">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div>';
     chip.innerHTML = avatar
-      + '<div style="min-width:0"><div style="font-weight:800;font-size:12.5px;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.prenom||'')+'</div>'
-      + '<div style="font-size:10.5px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.nom||'')+'</div></div>'
-      + '<div style="margin-left:auto;font-size:15px">'+(on?'✅':'—')+'</div>';
-    chip.onclick = function(){ _appel.present[s.id] = !_appel.present[s.id]; appelDrawGrid(); };
+      + '<div style="position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;'+(on?'background:#1A9E30;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35)':'background:rgba(255,255,255,.85);color:#AAA;border:1.5px solid #CCC')+'">'+(on?'✓':'')+'</div>'
+      + '<div style="padding:8px 10px 9px;text-align:center;width:100%;box-sizing:border-box">'
+      +   '<div style="font-weight:900;font-size:15px;color:'+(on?'#136B22':'#333')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.prenom||'')+'</div>'
+      +   '<div style="font-size:11.5px;color:#888;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.nom||'')+'</div>'
+      + '</div>';
+    chip.onclick = function(){ if(_appel.locked){ toast('🔒 Séance validée — modification réservée à l\'administrateur.'); return; } _appel.present[s.id] = !_appel.present[s.id]; appelDrawGrid(); };
     grid.appendChild(chip);
   });
   var n = _appel.list.filter(function(s){ return _appel.present[s.id]; }).length;
@@ -2117,6 +2171,7 @@ function appelDrawGrid(){
 }
 
 function appelTous(v){
+  if(_appel.locked) return;
   _appel.list.forEach(function(s){ _appel.present[s.id] = v; });
   appelDrawGrid();
 }
@@ -2131,6 +2186,7 @@ function appelNav(d){
 function closeAppel(){ var o = document.getElementById('appel-ov'); if (o) o.remove(); }
 
 function validerAppel(){
+  if(_appel.locked){ toast('🔒 Séance validée — modification réservée à l\'administrateur.'); return; }
   var idx = _appel.idx;
   var prof = (document.getElementById('appel-prof').value || '').trim();
   if (!prof){ toast('✍️ Indiquez le nom du prof qui signe la séance.'); document.getElementById('appel-prof').focus(); return; }
@@ -2173,6 +2229,220 @@ function validerAppel(){
     toast(m);
   });
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  JOURNAL DES SÉANCES + ALERTE DÉCROCHAGE + SAUVEGARDE DE GROUPE
+// ══════════════════════════════════════════════════════════════════
+var SEUIL_DECROCHAGE = 3; // absences consécutives (séances validées) déclenchant l'alerte
+
+// Indices des séances validées (journal), triés
+function seancesValidees(gid){
+  var out = [], total = (GROUPS[gid] && GROUPS[gid].attCount) || getAttCount();
+  for (var i = 0; i < total; i++){
+    if (localStorage.getItem(_seanceKey(gid, i))) out.push(i);
+  }
+  return out;
+}
+
+// Série d'absences consécutives (fin de série = dernière séance validée)
+function serieAbsences(attArr, valides){
+  if (!Array.isArray(attArr) || !valides.length) return 0;
+  var streak = 0;
+  for (var i = 0; i < valides.length; i++){
+    streak = (attArr[valides[i]] === -1) ? streak + 1 : 0;
+  }
+  return streak;
+}
+
+// ── Bandeau décrochage sur la fiche ouverte ──
+function checkDecrochage(){
+  var el = document.getElementById('alerte-decrochage');
+  if (!el) return;
+  var v = seancesValidees(curGroup);
+  var n = serieAbsences(att, v);
+  if (curId && n >= SEUIL_DECROCHAGE){
+    el.style.display = '';
+    el.textContent = '⚠️ Décrochage possible : ' + n + ' absences consécutives (séances validées). Un petit message à la famille ?';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ── Journal des séances ──
+function openJournal(){
+  if (typeof isAdmin === 'function' && !isAdmin()){ toast('🔒 Le journal est réservé à l\'administrateur.'); return; }
+  toast('📖 Chargement du journal…');
+  var docsP = db
+    ? db.collection(GROUPS[curGroup].col).get().then(function(snap){
+        var docs = {};
+        snap.forEach(function(d){
+          var x = d.data(); var data = null;
+          try{ data = x.payload ? JSON.parse(x.payload) : null; }catch(e){}
+          docs[d.id] = { meta: x.meta || {}, data: data };
+        });
+        return docs;
+      }).catch(function(){ return {}; })
+    : Promise.resolve({});
+  Promise.all([docsP, syncSeancesJournal()]).then(function(res){
+    renderJournal(res[0]);
+  });
+}
+function closeJournal(){ var o = document.getElementById('journal-ov'); if (o) o.remove(); }
+function renderJournal(docs){
+  closeJournal();
+  var valides = seancesValidees(curGroup);
+  var list = getList();
+  var alertes = [];
+  list.forEach(function(s){
+    var d = docs[s.id], attArr = d && d.data && d.data.att;
+    if (!attArr){ try{ var loc = JSON.parse(localStorage.getItem(KS(s.id))); attArr = loc && loc.att; }catch(e){} }
+    var n = serieAbsences(attArr, valides);
+    if (n >= SEUIL_DECROCHAGE) alertes.push({ s: s, n: n });
+  });
+  alertes.sort(function(a, b){ return b.n - a.n; });
+  var ov = document.createElement('div');
+  ov.id = 'journal-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:center;justify-content:center;padding:14px';
+  var html = '<div style="background:#FFFDF8;border-radius:16px;max-width:860px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
+    + '<div style="background:var(--red,#7B0000);color:#fff;padding:13px 18px;display:flex;align-items:center;gap:10px">'
+    +   '<div style="font-weight:900;font-size:16px">📖 Journal des séances — ' + (GROUPS[curGroup].label || '') + '</div>'
+    +   '<div style="margin-left:auto;font-size:12.5px;opacity:.85">' + valides.length + ' séance(s) validée(s)</div>'
+    + '</div>'
+    + '<div style="overflow-y:auto;flex:1;padding:14px 18px">';
+  if (alertes.length){
+    html += '<div style="border:2px solid #E65100;background:#FFF3E0;border-radius:12px;padding:11px 14px;margin-bottom:14px">'
+      + '<div style="font-weight:900;color:#E65100;font-size:13.5px;margin-bottom:6px">⚠️ ÉLÈVES EN DÉCROCHAGE (' + SEUIL_DECROCHAGE + ' absences consécutives ou plus)</div>';
+    alertes.forEach(function(a){
+      html += '<div style="font-size:13px;padding:3px 0;color:#4A3520"><b>' + (a.s.prenom || '') + ' ' + (a.s.nom || '') + '</b> — ' + a.n + ' absences consécutives</div>';
+    });
+    html += '</div>';
+  } else if (valides.length){
+    html += '<div style="font-size:12.5px;color:#1A5E20;background:#E8F5E9;border-radius:9px;padding:8px 12px;margin-bottom:14px">✔ Aucun élève en décrochage (' + SEUIL_DECROCHAGE + ' absences consécutives ou plus).</div>';
+  }
+  if (!valides.length){
+    html += '<div style="text-align:center;color:#888;font-size:13px;padding:30px 10px">Aucune séance validée pour ce groupe.<br>Les séances apparaissent ici après chaque appel validé.</div>';
+  }
+  for (var k = valides.length - 1; k >= 0; k--){
+    var i = valides[k], j = null;
+    try{ j = JSON.parse(localStorage.getItem(_seanceKey(curGroup, i))); }catch(e){}
+    if (!j) continue;
+    var noteTxt = (j.note || '').trim();
+    var isRas = !noteTxt || /^(ras|r\.a\.s\.?|rien( à signaler)?|ok)$/i.test(noteTxt);
+    var lbl = seanceLabel(i);
+    html += '<div style="border:1.5px solid ' + (isRas ? '#E4DCC8' : '#E65100') + ';border-radius:11px;padding:10px 13px;margin-bottom:9px;background:' + (isRas ? '#FFFFFF' : '#FFF8F2') + '">'
+      + '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
+      +   '<b style="color:var(--red,#7B0000);font-size:13.5px">Séance ' + (i + 1) + '</b>'
+      +   (lbl ? '<span style="font-size:11px;color:#999">' + lbl + '</span>' : '')
+      +   '<span style="font-size:12.5px;color:#555">' + (j.date ? j.date.split('-').reverse().join('/') : '—') + '</span>'
+      +   '<span style="font-size:12.5px;color:#555">✍ ' + (j.prof || '—') + '</span>'
+      +   '<span style="margin-left:auto;font-weight:800;font-size:12.5px;color:#1A5E20">' + (j.presents != null ? j.presents + ' / ' + j.total + ' présents' : '') + '</span>'
+      + '</div>'
+      + (noteTxt ? '<div style="font-size:12.5px;margin-top:5px;color:' + (isRas ? '#888' : '#B34700') + '">' + (isRas ? '' : '❗ ') + noteTxt.replace(/</g, '&lt;') + '</div>' : '')
+      + '</div>';
+  }
+  html += '</div>'
+    + '<div style="border-top:1px solid #EEE;padding:10px 16px;display:flex;justify-content:flex-end">'
+    + '<button onclick="closeJournal()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:9px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer">Fermer</button>'
+    + '</div></div>';
+  ov.innerHTML = html;
+  ov.addEventListener('click', function(e){ if (e.target === ov) closeJournal(); });
+  document.body.appendChild(ov);
+}
+
+// ── Sauvegarde / restauration complète du groupe ──
+function openBackup(){
+  if (typeof isAdmin === 'function' && !isAdmin()){ toast('🔒 Réservé à l\'administrateur.'); return; }
+  var ov = document.createElement('div');
+  ov.id = 'backup-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:400px;width:100%;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5)">'
+    + '<div style="background:var(--red,#7B0000);color:#fff;padding:14px 18px;font-weight:800">🗄 Sauvegarde du groupe ' + (GROUPS[curGroup].label || '') + '</div>'
+    + '<div style="padding:16px 18px">'
+    + '<div style="font-size:12.5px;color:#555;margin-bottom:12px;line-height:1.5">La sauvegarde contient toutes les fiches du groupe (identité, assiduité, technique, grades, compétitions, notes, codes familles) et le journal des séances. Les photos ne sont pas incluses.</div>'
+    + '<button onclick="downloadBackup()" style="display:block;width:100%;margin-bottom:8px;padding:12px 14px;border:1.5px solid var(--gold,#C9A84C);border-radius:9px;background:#FBF7EC;font-weight:800;font-size:13px;color:var(--red,#7B0000);cursor:pointer">⬇ Télécharger la sauvegarde (.json)</button>'
+    + '<label style="display:block;width:100%;margin-bottom:8px;padding:12px 14px;border:1.5px solid #999;border-radius:9px;background:#F6F6F6;font-weight:800;font-size:13px;color:#444;cursor:pointer;text-align:left;box-sizing:border-box">⬆ Restaurer une sauvegarde…<input type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])"></label>'
+    + '<button onclick="closeBackup()" style="display:block;width:100%;padding:10px;border:none;background:#EEE;border-radius:9px;font-size:12.5px;cursor:pointer">Fermer</button>'
+    + '</div></div>';
+  ov.addEventListener('click', function(e){ if (e.target === ov) closeBackup(); });
+  document.body.appendChild(ov);
+}
+function closeBackup(){ var o = document.getElementById('backup-ov'); if (o) o.remove(); }
+
+function downloadBackup(){
+  var build = function(students){
+    var journal = [];
+    seancesValidees(curGroup).forEach(function(i){
+      try{ journal.push({ idx: i, entry: JSON.parse(localStorage.getItem(_seanceKey(curGroup, i))) }); }catch(e){}
+    });
+    var pack = {
+      type: 'suivi-backup', version: 1,
+      club: CLUB.nomCourt, saison: CLUB.saison, saisonCle: CLUB.saisonCle,
+      groupe: curGroup, groupeLabel: (GROUPS[curGroup] && GROUPS[curGroup].label) || '',
+      exportedAt: new Date().toISOString(),
+      students: students, journal: journal
+    };
+    var blob = new Blob([JSON.stringify(pack, null, 1)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Sauvegarde_' + CLUB.nomCourt.replace(/[^A-Za-z0-9]+/g, '_') + '_' + curGroup + '_' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    toast('⬇ Sauvegarde téléchargée : ' + students.length + ' fiche(s), ' + journal.length + ' séance(s).');
+  };
+  if (db){
+    db.collection(GROUPS[curGroup].col).get().then(function(snap){
+      var students = [];
+      snap.forEach(function(d){ var x = d.data(); students.push({ id: d.id, meta: x.meta || {}, payload: x.payload || '' }); });
+      build(students);
+    }).catch(function(){ toast('❌ Lecture Firebase impossible.'); });
+  } else {
+    var students = [];
+    getList().forEach(function(s){
+      var payload = localStorage.getItem(KS(s.id));
+      if (payload) students.push({ id: s.id, meta: { nom: s.nom, prenom: s.prenom, ceinture: s.ceinture }, payload: payload });
+    });
+    build(students);
+  }
+}
+
+function restoreBackup(file){
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    var pack = null;
+    try{ pack = JSON.parse(reader.result); }catch(e){}
+    if (!pack || pack.type !== 'suivi-backup' || !Array.isArray(pack.students)){
+      alert('❌ Fichier de sauvegarde invalide.'); return;
+    }
+    if (!db){ alert('⚠️ Connexion Firebase requise pour restaurer.'); return; }
+    var msg = 'Restaurer cette sauvegarde ?\n\n'
+      + '• Club : ' + (pack.club || '?') + ' — ' + (pack.groupeLabel || pack.groupe) + '\n'
+      + '• ' + pack.students.length + ' fiche(s), ' + (pack.journal ? pack.journal.length : 0) + ' séance(s) de journal\n'
+      + '• Exportée le : ' + (pack.exportedAt || '?').slice(0, 10) + '\n\n'
+      + '⚠️ Les fiches portant les mêmes identifiants dans le groupe « ' + (GROUPS[curGroup].label || curGroup) + ' » seront ÉCRASÉES par celles de la sauvegarde.';
+    if (!confirm(msg)) return;
+    var col = db.collection(GROUPS[curGroup].col);
+    var jobs = pack.students.map(function(s){
+      if (!s || !s.id) return Promise.resolve();
+      localStorage.setItem(KS(s.id), s.payload || '');
+      return col.doc(s.id).set({ meta: s.meta || {}, payload: s.payload || '' });
+    });
+    (pack.journal || []).forEach(function(j){
+      if (j && j.entry != null && j.idx != null){
+        localStorage.setItem(_seanceKey(curGroup, j.idx), JSON.stringify(j.entry));
+        jobs.push(db.collection('seances_journal').doc(CLUB.saisonCle + '_' + curGroup + '_' + j.idx).set(j.entry));
+      }
+    });
+    Promise.all(jobs).then(function(){
+      closeBackup();
+      toast('✅ Sauvegarde restaurée : ' + pack.students.length + ' fiche(s).');
+      if (typeof startRealtimeSync === 'function') startRealtimeSync();
+    }).catch(function(e){
+      alert('❌ Restauration incomplète : ' + ((e && e.message) || e));
+    });
+  };
+  reader.readAsText(file);
+}
+
 
 
 
