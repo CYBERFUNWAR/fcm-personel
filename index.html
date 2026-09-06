@@ -986,7 +986,8 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
 <!-- ACTION BAR -->
 <div class="abar">
   <div class="brow">
-    <button class="btn bprim" onclick="saveData()">💾 Sauvegarder</button>
+    <button class="btn" id="btn-appel" onclick="openAppel()" style="background:var(--gold,#C9A84C);color:#3A2C00;font-weight:800">📋 Appel</button>
+  <button class="btn bprim" onclick="saveData()">💾 Sauvegarder</button>
     <button class="btn bpdf" onclick="exportPDF()">🖨 PDF</button>
     <button class="btn bgh" onclick="seasonReport()" title="Bilan de fin de saison imprimable">📅 Bilan de saison</button>
     <button class="btn bgh" onclick="exportJSON()">📤 JSON</button>
@@ -1952,6 +1953,227 @@ async function doTransfer(target){
   await loadStudent(id);
   toast('✅ '+(docObj.meta.prenom||'Élève')+' '+(docObj.meta.nom||'')+' → groupe '+GROUPS[target].label+'.');
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  MODE APPEL — faire l'assiduité de tout le groupe sur un seul écran
+//  + journal de séance : total de présents, note, date, signature prof
+// ══════════════════════════════════════════════════════════════════
+var _appel = { idx:0, total:0, docs:{}, present:{}, list:[] };
+
+function _seanceKey(gid, idx){ return CLUB.prefixe+'_seance_'+CLUB.saisonCle+'_'+gid+'_'+idx; }
+function _profKey(){ return CLUB.prefixe+'_prof_'+CLUB.saisonCle; }
+
+// Libellé contextuel de la séance (phase pédagogique ou mois selon le groupe)
+function seanceLabel(idx){
+  var grp = GROUPS[curGroup];
+  try{
+    if (grp && grp.attType === 'flat' && grp.months){
+      var sn = 0;
+      var mois = Object.entries(grp.months);
+      for (var i = 0; i < mois.length; i++){
+        if (idx < sn + mois[i][1]) return mois[i][0];
+        sn += mois[i][1];
+      }
+    } else if (typeof PHASES !== 'undefined' && PHASES && PHASES.length){
+      var c = 0;
+      for (var j = 0; j < PHASES.length; j++){
+        if (idx < c + (PHASES[j].sessions || 0)) return PHASES[j].code + ' — ' + (PHASES[j].period || '');
+        c += (PHASES[j].sessions || 0);
+      }
+    }
+  }catch(e){}
+  return '';
+}
+
+function openAppel(){
+  if (typeof isViewer === 'function' && isViewer()) return;
+  var list = getList();
+  if (!list.length){ toast('Aucun élève dans ce groupe.'); return; }
+  _appel.list = list;
+  _appel.docs = {};
+  _appel.present = {};
+  _appel.total = getAttCount();
+  toast('📋 Chargement du groupe…');
+  var loadDocs = db
+    ? db.collection(GROUPS[curGroup].col).get().then(function(snap){
+        snap.forEach(function(doc){
+          var d = doc.data(); var data = null;
+          try{ data = d.payload ? JSON.parse(d.payload) : null; }catch(e){}
+          _appel.docs[doc.id] = { meta: d.meta || {}, data: data };
+        });
+      }).catch(function(){ /* mode local */ })
+    : Promise.resolve();
+  loadDocs.then(function(){
+    // Compléter avec les copies locales (élèves hors ligne / non synchronisés)
+    _appel.list.forEach(function(s){
+      if (!_appel.docs[s.id] || !_appel.docs[s.id].data){
+        try{
+          var loc = JSON.parse(localStorage.getItem(KS(s.id)));
+          if (loc) _appel.docs[s.id] = { meta: (_appel.docs[s.id] && _appel.docs[s.id].meta) || null, data: loc, localOnly: !(_appel.docs[s.id] && _appel.docs[s.id].meta) };
+        }catch(e){}
+      }
+    });
+    // Séance proposée : la première non renseignée (journal, puis assiduité)
+    var idx = 0;
+    for (var i = 0; i < _appel.total; i++){
+      var journal = !!localStorage.getItem(_seanceKey(curGroup, i));
+      var any = false;
+      if (!journal){
+        _appel.list.forEach(function(s){
+          var d = _appel.docs[s.id];
+          if (d && d.data && Array.isArray(d.data.att) && d.data.att[i]) any = true;
+        });
+      }
+      if (!journal && !any){ idx = i; break; }
+      idx = Math.min(i + 1, _appel.total - 1);
+    }
+    _appel.idx = idx;
+    renderAppel();
+  });
+}
+
+function renderAppel(){
+  closeAppel();
+  var ov = document.createElement('div');
+  ov.id = 'appel-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:center;justify-content:center;padding:14px';
+  ov.innerHTML =
+    '<div style="background:#FFFDF8;border-radius:16px;max-width:760px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
+    + '<div style="background:var(--red,#7B0000);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+    +   '<div style="font-weight:900;font-size:16px">📋 Appel — ' + (GROUPS[curGroup].label || '') + '</div>'
+    +   '<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'
+    +     '<button onclick="appelNav(-1)" style="border:none;background:rgba(255,255,255,.18);color:#fff;border-radius:7px;padding:5px 11px;font-size:15px;cursor:pointer">◀</button>'
+    +     '<div id="appel-session" style="font-weight:800;font-size:13.5px;min-width:150px;text-align:center"></div>'
+    +     '<button onclick="appelNav(1)" style="border:none;background:rgba(255,255,255,.18);color:#fff;border-radius:7px;padding:5px 11px;font-size:15px;cursor:pointer">▶</button>'
+    +   '</div>'
+    + '</div>'
+    + '<div style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #EEE;flex-wrap:wrap">'
+    +   '<label style="font-size:11px;font-weight:700;color:#7B0000">DATE <input type="date" id="appel-date" style="margin-left:5px;padding:5px 7px;border:1px solid #DDD;border-radius:7px;font-size:13px"></label>'
+    +   '<button onclick="appelTous(true)" style="border:1.5px solid #1A5E20;background:#E8F5E9;color:#1A5E20;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">✓ Tous présents</button>'
+    +   '<button onclick="appelTous(false)" style="border:1.5px solid #999;background:#F4F4F4;color:#555;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer">✗ Tout effacer</button>'
+    +   '<div id="appel-count" style="margin-left:auto;font-weight:900;font-size:16px;color:var(--red,#7B0000)"></div>'
+    + '</div>'
+    + '<div id="appel-grid" style="padding:14px 16px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:9px"></div>'
+    + '<div style="border-top:1px solid #EEE;padding:11px 16px;background:#FBF7EC">'
+    +   '<textarea id="appel-note" placeholder="Note de séance : RAS, incident, blessure, matériel, remarque…" style="width:100%;min-height:42px;padding:8px 10px;border:1px solid #E2D9BE;border-radius:8px;font-size:13px;box-sizing:border-box"></textarea>'
+    +   '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'
+    +     '<label style="font-size:11px;font-weight:700;color:#7B0000">SIGNÉ PAR <input type="text" id="appel-prof" placeholder="Nom du prof" style="margin-left:5px;padding:6px 9px;border:1px solid #DDD;border-radius:7px;font-size:13px;width:150px"></label>'
+    +     '<div style="margin-left:auto;display:flex;gap:8px">'
+    +       '<button onclick="closeAppel()" style="border:none;background:#EEE;border-radius:9px;padding:10px 16px;font-size:13px;cursor:pointer">Annuler</button>'
+    +       '<button onclick="validerAppel()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:800;cursor:pointer">✅ Valider l\'appel</button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  document.getElementById('appel-prof').value = localStorage.getItem(_profKey()) || '';
+  appelInitSession();
+}
+
+function appelInitSession(){
+  var idx = _appel.idx;
+  // états depuis l'assiduité existante
+  _appel.list.forEach(function(s){
+    var d = _appel.docs[s.id];
+    _appel.present[s.id] = !!(d && d.data && Array.isArray(d.data.att) && d.data.att[idx] === 1);
+  });
+  // journal existant → préremplir date / note / prof
+  var today = new Date().toISOString().slice(0,10);
+  var dEl = document.getElementById('appel-date'), nEl = document.getElementById('appel-note');
+  dEl.value = today; nEl.value = '';
+  try{
+    var j = JSON.parse(localStorage.getItem(_seanceKey(curGroup, idx)));
+    if (j){
+      if (j.date) dEl.value = j.date;
+      if (j.note) nEl.value = j.note;
+      if (j.prof) document.getElementById('appel-prof').value = j.prof;
+    }
+  }catch(e){}
+  var lbl = seanceLabel(idx);
+  document.getElementById('appel-session').textContent = 'Séance ' + (idx+1) + ' / ' + _appel.total + (lbl ? ' · ' + lbl : '');
+  appelDrawGrid();
+}
+
+function appelDrawGrid(){
+  var grid = document.getElementById('appel-grid');
+  grid.innerHTML = '';
+  _appel.list.forEach(function(s){
+    var on = _appel.present[s.id];
+    var chip = document.createElement('button');
+    chip.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:11px;cursor:pointer;text-align:left;transition:all .1s;border:2px solid ' + (on ? '#1A5E20' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA');
+    var photo = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
+    var avatar = photo
+      ? '<img src="'+photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">'
+      : '<div style="width:34px;height:34px;border-radius:50%;background:'+(on?'#1A5E20':'#BBB')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div>';
+    chip.innerHTML = avatar
+      + '<div style="min-width:0"><div style="font-weight:800;font-size:12.5px;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.prenom||'')+'</div>'
+      + '<div style="font-size:10.5px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.nom||'')+'</div></div>'
+      + '<div style="margin-left:auto;font-size:15px">'+(on?'✅':'—')+'</div>';
+    chip.onclick = function(){ _appel.present[s.id] = !_appel.present[s.id]; appelDrawGrid(); };
+    grid.appendChild(chip);
+  });
+  var n = _appel.list.filter(function(s){ return _appel.present[s.id]; }).length;
+  document.getElementById('appel-count').textContent = 'Présents : ' + n + ' / ' + _appel.list.length;
+}
+
+function appelTous(v){
+  _appel.list.forEach(function(s){ _appel.present[s.id] = v; });
+  appelDrawGrid();
+}
+
+function appelNav(d){
+  var i = _appel.idx + d;
+  if (i < 0 || i >= _appel.total) return;
+  _appel.idx = i;
+  appelInitSession();
+}
+
+function closeAppel(){ var o = document.getElementById('appel-ov'); if (o) o.remove(); }
+
+function validerAppel(){
+  var idx = _appel.idx;
+  var prof = (document.getElementById('appel-prof').value || '').trim();
+  if (!prof){ toast('✍️ Indiquez le nom du prof qui signe la séance.'); document.getElementById('appel-prof').focus(); return; }
+  var date = document.getElementById('appel-date').value || new Date().toISOString().slice(0,10);
+  var note = (document.getElementById('appel-note').value || '').trim();
+  localStorage.setItem(_profKey(), prof);
+  var nb = _appel.list.filter(function(s){ return _appel.present[s.id]; }).length;
+  var skipped = 0;
+  var tasks = _appel.list.map(function(s){
+    var d = _appel.docs[s.id];
+    var base = d && d.data;
+    if (!base){ skipped++; return Promise.resolve(); }
+    if (!Array.isArray(base.att)) base.att = [];
+    while (base.att.length < _appel.total) base.att.push(0);
+    base.att[idx] = _appel.present[s.id] ? 1 : -1;
+    localStorage.setItem(KS(s.id), JSON.stringify(base));
+    // fiche actuellement ouverte : rafraîchir l'assiduité à l'écran
+    if (s.id === curId){
+      try{ att = base.att.slice(); if (typeof refreshAtt === 'function') refreshAtt(); }catch(e){}
+    }
+    if (db){
+      var doc = { payload: JSON.stringify(base) };
+      var col = db.collection(GROUPS[curGroup].col);
+      if (d.meta) return col.doc(s.id).update(doc).catch(function(){ skipped++; });
+      // fiche locale jamais synchronisée : créer le document complet
+      return col.doc(s.id).set({ meta:{ nom:s.nom||'', prenom:s.prenom||'', ceinture:s.ceinture||'', accessCode:base.accessCode||'' }, payload: doc.payload }).catch(function(){ skipped++; });
+    }
+    return Promise.resolve();
+  });
+  var entry = { groupe: curGroup, seance: idx+1, date: date, note: note, prof: prof, presents: nb, total: _appel.list.length, ts: Date.now() };
+  localStorage.setItem(_seanceKey(curGroup, idx), JSON.stringify(entry));
+  if (db){
+    db.collection('seances_journal').doc(CLUB.saisonCle+'_'+curGroup+'_'+idx).set(entry).catch(function(){});
+  }
+  Promise.all(tasks).then(function(){
+    closeAppel();
+    var m = '📋 Séance '+(idx+1)+' enregistrée : '+nb+' présent(s) / '+_appel.list.length+'.';
+    if (skipped) m += '\n⚠️ '+skipped+' fiche(s) non mise(s) à jour (hors ligne / non synchronisée(s)).';
+    if (!db) m += '\n📴 Hors ligne : enregistré localement.';
+    toast(m);
+  });
+}
+
 
 
 async function loadStudent(id){
