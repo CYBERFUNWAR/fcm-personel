@@ -596,6 +596,8 @@ function applyDeleteRestrictions(){
   if(cb) cb.style.display = isAdmin() ? '' : 'none';
   var tb = document.getElementById('btn-transfer');
   if(tb) tb.style.display = isAdmin() ? '' : 'none';
+  var rb = document.getElementById('btn-reset');
+  if(rb) rb.style.display = isAdmin() ? '' : 'none';
 }
 
 // ── Mode lecture seule (rôle Élève) ──
@@ -993,7 +995,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
     <input type="file" id="imp" accept=".json" style="display:none" onchange="loadJSONFile(event)">
   </div>
   <span class="sinf" id="sinf">Non sauvegardé</span>
-  <button class="btn bdang" onclick="doReset()">🗑 Réinitialiser</button>
+  <button class="btn bdang" id="btn-reset" onclick="doReset()">🗑 Réinitialiser</button>
 </div>
 </div>
 
@@ -2022,6 +2024,7 @@ function clearForm(){
 }
 
 function doReset(){
+  if(typeof isAdmin==='function' && !isAdmin()){ toast('🔒 La réinitialisation est réservée à l\'administrateur.'); return; }
   if(!window.confirm(curId?'Effacer toutes les données de cette fiche ? (Irréversible)':'Réinitialiser le formulaire ?'))return;
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showPhoto(null);
