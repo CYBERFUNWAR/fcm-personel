@@ -624,10 +624,13 @@ function applyViewerMode(){
   // Rendre tous les champs en lecture seule
   document.querySelectorAll('input, textarea, select').forEach(function(el){
     if(el.id==='code-input'||el.id==='pw-input') return;
+    if(el.id==='objectifs'||el.id==='carnet-de'||el.id==='carnet-msg') return; // l'élève écrit ici
     el.setAttribute('readonly','readonly');
     el.setAttribute('disabled','disabled');
     el.style.background='#f5f5f5'; el.style.cursor='default';
   });
+  // Afficher les actions réservées à l'élève (objectifs, carnet)
+  document.querySelectorAll('.eleve-only').forEach(function(el){ el.style.display=''; });
   // Neutraliser les cases d'assiduité, technique, badges de grade et boutons compétition
   document.querySelectorAll('.sb, .gres-cell, .tcell, .rbadge').forEach(function(el){
     el.style.pointerEvents='none';
@@ -858,6 +861,21 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
   </div>
 
 
+  <button id="btn-obj-save" class="eleve-only" onclick="saveObjectifsEleve()" style="display:none;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:var(--red,#7B0000);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer">💾 Enregistrer mes objectifs</button>
+
+  <!-- CARNET DE CORRESPONDANCE (famille → enseignants ; lecture seule côté profs) -->
+  <style>@media print{ .carnet-bloc{ display:none !important } }</style>
+  <div class="carnet-bloc" style="margin-top:10px;border:1.5px dashed #7A97C9;border-radius:10px;padding:12px 14px;background:#F3F7FD">
+    <label style="font-size:10px;font-weight:700;color:#2B4A7F;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px">📬 Carnet de correspondance</label>
+    <div style="font-size:10.5px;color:#4A6392;margin:0 0 8px">Messages de la famille ou de l'élève aux enseignants, écrits depuis l'accès de consultation. Lecture seule pour les enseignants — chaque message est daté et ne peut plus être modifié.</div>
+    <div id="carnet-liste"></div>
+    <div id="carnet-form" class="eleve-only" style="display:none;margin-top:8px">
+      <input id="carnet-de" type="text" placeholder="De la part de… (parent, élève)" style="width:100%;box-sizing:border-box;margin-bottom:6px;padding:7px 9px;border:1px solid #C6D4EA;border-radius:7px;font-size:12.5px">
+      <textarea id="carnet-msg" placeholder="Votre message aux enseignants (information, absence prévue, question…)" style="width:100%;box-sizing:border-box;min-height:56px;padding:7px 9px;border:1px solid #C6D4EA;border-radius:7px;font-size:12.5px"></textarea>
+      <button onclick="envoyerCarnet()" style="margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:#2B4A7F;color:#fff;font-weight:800;font-size:12.5px;cursor:pointer">📨 Envoyer aux enseignants</button>
+    </div>
+  </div>
+
   <!-- NOTES INTERNES ENSEIGNANTS (jamais visibles en mode élève, ni à l'impression) -->
   <style>@media print{ .notes-internes{ display:none !important } }</style>
   <div class="notes-internes" style="margin-top:10px;border:1.5px dashed var(--gold,#C9A84C);border-radius:10px;padding:12px 14px;background:#FBF7EC">
@@ -877,12 +895,21 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
         <option value="non_paye">❌ Non payé</option>
       </select>
     </div>
+    <div>
+      <label style="font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Certificat médical</label>
+      <select id="adh-certif" onchange="updateAdhBadge()" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;padding:5px 8px;border:1.5px solid var(--g2);border-radius:5px;background:#fff">
+        <option value="">-- Non renseigné --</option>
+        <option value="ok">✔ À jour</option>
+        <option value="ko">✘ Non à jour</option>
+      </select>
+    </div>
     <div id="adh-montant-wrap" style="display:none">
       <label style="font-size:10px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Montant versé (€)</label>
       <input id="adh-montant" type="number" min="0" step="1" placeholder="0" style="font-size:13px;padding:5px 8px;border:1.5px solid var(--g2);border-radius:5px;width:90px">
     </div>
-    <div id="adh-badge-wrap" style="margin-left:auto">
+    <div id="adh-badge-wrap" style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
       <div id="adh-badge" class="adh-badge" style="display:none"></div>
+      <div id="certif-badge" class="adh-badge" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -1176,6 +1203,14 @@ function updateAdhBadge(){
   } else {
     badge.style.display='none';
   }
+  // Badge certificat médical
+  const cb = document.getElementById('certif-badge');
+  const cv = document.getElementById('adh-certif')?.value || '';
+  if(cb){
+    if(cv==='ok'){ cb.className='adh-badge adh-ok'; cb.textContent='🩺 Certificat médical à jour'; cb.style.display='inline-flex'; }
+    else if(cv==='ko'){ cb.className='adh-badge adh-no'; cb.textContent='🩺 Certificat médical manquant'; cb.style.display='inline-flex'; }
+    else cb.style.display='none';
+  }
 }
 
 const PHASES = CLUB.phases; // ← défini dans le bloc CONFIGURATION CLUB en haut du fichier
@@ -1188,7 +1223,7 @@ const PHYS=[
   {id:'tech',label:'Enchaîn. technique',unit:'/5',lower:false},
 ];
 
-const SIDS=['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','tel','email','objectifs','notes-internes','adh-statut','adh-montant',
+const SIDS=['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','tel','email','objectifs','notes-internes','adh-statut','adh-montant','adh-certif',
   'g1d','g1g','g1o','g2d','g2g','g2o','g3d','g3g','g3o','grade-final','date-cloture',
   'b-forts','b-axes','b-attitude','b-reco','b-libre'];
 
@@ -1289,21 +1324,35 @@ function setPhotoStatus(msg){
   if(el)el.textContent=msg;
 }
 
-// Compresser en base64 (150x150px, JPEG qualité 0.75)
+// Compresser en base64 (384px max, JPEG 0.8, réduction progressive pour garder la netteté)
 function compressToBase64(file){
   return new Promise(function(resolve){
     var reader=new FileReader();
     reader.onload=function(e){
       var img=new Image();
       img.onload=function(){
-        var SIZE=150;
-        var canvas=document.createElement('canvas');
+        var SIZE=384;
         var w=img.width, h=img.height;
-        if(w>h){h=Math.round(h*SIZE/w);w=SIZE;}
-        else    {w=Math.round(w*SIZE/h);h=SIZE;}
-        canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL('image/jpeg',0.75));
+        var tw, th;
+        if(w>h){ th=Math.round(h*SIZE/w); tw=SIZE; }
+        else   { tw=Math.round(w*SIZE/h); th=SIZE; }
+        if(tw>=w){ tw=w; th=h; } // ne jamais agrandir une petite image
+        // Réduction par étapes (÷2 max à chaque passe) : évite la pixellisation des grandes photos
+        var cur=img, cw=w, ch=h;
+        while(cw/2 > tw){
+          var step=document.createElement('canvas');
+          step.width=Math.round(cw/2); step.height=Math.round(ch/2);
+          var sctx=step.getContext('2d');
+          sctx.imageSmoothingEnabled=true; sctx.imageSmoothingQuality='high';
+          sctx.drawImage(cur,0,0,step.width,step.height);
+          cur=step; cw=step.width; ch=step.height;
+        }
+        var canvas=document.createElement('canvas');
+        canvas.width=tw; canvas.height=th;
+        var ctx=canvas.getContext('2d');
+        ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+        ctx.drawImage(cur,0,0,tw,th);
+        resolve(canvas.toDataURL('image/jpeg',0.8));
       };
       img.src=e.target.result;
     };
@@ -1826,13 +1875,16 @@ function collect(){
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)fields[id]=el.value;});
   const comp=[];
   document.querySelectorAll('#comp-body tr').forEach(tr=>{comp.push(Array.from(tr.querySelectorAll('input')).map(i=>i.value));});
-  const out={fields,att:[...att],tech:{...tech},phys:{...phys},gres:{...gres},comp};
+  const out={fields,att:[...att],tech:{...tech},phys:{...phys},gres:{...gres},comp,carnet:carnet.slice()};
   if(_curAccessCode) out.accessCode=_curAccessCode; // conserver le code de consultation
   return out;
 }
 
+var carnet=[];
 function apply(data){
   att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};
+  carnet = Array.isArray(data.carnet) ? data.carnet.slice() : [];
+  renderCarnet();
   _curAccessCode = data.accessCode || ''; // mémoriser le code de la fiche
   if(data.fields){
     // Initialiser les champs manquants avec '' (compatibilité anciens élèves)
@@ -2379,6 +2431,72 @@ function openBackup(){
 }
 function closeBackup(){ var o = document.getElementById('backup-ov'); if (o) o.remove(); }
 
+// ── Carnet de correspondance : rendu de la liste ──
+function renderCarnet(){
+  var box = document.getElementById('carnet-liste');
+  if (!box) return;
+  if (!carnet.length){
+    box.innerHTML = '<div style="font-size:11.5px;color:#8FA3C4;font-style:italic">Aucun message pour le moment.</div>';
+    return;
+  }
+  var h = '';
+  for (var i = carnet.length - 1; i >= 0; i--){
+    var m = carnet[i] || {};
+    var d = m.date ? m.date.slice(0, 10).split('-').reverse().join('/') : '';
+    h += '<div style="background:#fff;border:1px solid #D6E1F2;border-radius:8px;padding:8px 11px;margin-bottom:6px">'
+      + '<div style="font-size:10.5px;color:#5B739C;font-weight:700;margin-bottom:2px">' + d + (m.de ? ' — ' + String(m.de).replace(/</g, '&lt;') : '') + '</div>'
+      + '<div style="font-size:12.5px;color:#26374F;white-space:pre-wrap">' + String(m.msg || '').replace(/</g, '&lt;') + '</div>'
+      + '</div>';
+  }
+  box.innerHTML = h;
+}
+
+// ── Écriture élève : lecture-modification-écriture ciblée du document Firestore ──
+function _patchFicheEleve(mutator, onDone){
+  if (!db || !curId){ toast('⚠️ Connexion requise pour enregistrer.'); return; }
+  var ref = db.collection(GROUPS[curGroup].col).doc(curId);
+  ref.get().then(function(snap){
+    if (!snap.exists){ toast('❌ Fiche introuvable.'); return; }
+    var d = snap.data(); var pl = {};
+    try{ pl = d.payload ? JSON.parse(d.payload) : {}; }catch(e){}
+    mutator(pl);
+    return ref.update({ payload: JSON.stringify(pl) }).then(function(){
+      try{ localStorage.setItem(KS(curId), JSON.stringify(pl)); }catch(e){}
+      if (onDone) onDone(pl);
+    });
+  }).catch(function(e){ toast('❌ Enregistrement impossible : ' + ((e && e.message) || e)); });
+}
+
+function saveObjectifsEleve(){
+  if (typeof isViewer === 'function' && !isViewer()) return; // réservé au mode élève
+  var val = (document.getElementById('objectifs') || {}).value || '';
+  _patchFicheEleve(function(pl){
+    pl.fields = pl.fields || {};
+    pl.fields.objectifs = val;
+  }, function(){
+    toast('✅ Tes objectifs de la saison sont enregistrés. Bon entraînement ! 🥊');
+  });
+}
+
+function envoyerCarnet(){
+  if (typeof isViewer === 'function' && !isViewer()) return; // réservé au mode élève
+  var deEl = document.getElementById('carnet-de'), msgEl = document.getElementById('carnet-msg');
+  var de = (deEl && deEl.value || '').trim();
+  var msg = (msgEl && msgEl.value || '').trim();
+  if (!msg){ toast('✍️ Écris ton message avant d\'envoyer.'); if (msgEl) msgEl.focus(); return; }
+  var entry = { date: new Date().toISOString(), de: de, msg: msg };
+  _patchFicheEleve(function(pl){
+    if (!Array.isArray(pl.carnet)) pl.carnet = [];
+    pl.carnet.push(entry);
+  }, function(pl){
+    carnet = pl.carnet.slice();
+    renderCarnet();
+    if (msgEl) msgEl.value = '';
+    toast('📨 Message envoyé aux enseignants.');
+  });
+}
+
+
 function downloadBackup(){
   var build = function(students){
     var journal = [];
@@ -2518,7 +2636,7 @@ function clearForm(){
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showPhoto(null);
   updateAdhBadge();
-  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};
+  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};carnet=[];renderCarnet();
   buildAtt();buildTech();buildPhys();applyGres();
   document.getElementById('comp-body').innerHTML='';
   addCompRow();addCompRow();addCompRow();
@@ -2532,7 +2650,7 @@ function doReset(){
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showPhoto(null);
   updateAdhBadge();
-  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};
+  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};carnet=[];renderCarnet();
   buildAtt();buildTech();buildPhys();applyGres();
   document.getElementById('comp-body').innerHTML='';
   addCompRow();addCompRow();addCompRow();
