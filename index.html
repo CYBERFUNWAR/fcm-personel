@@ -2522,12 +2522,168 @@ function openBackup(){
     + '<div style="font-size:12.5px;color:#555;margin-bottom:12px;line-height:1.5">La sauvegarde contient toutes les fiches du groupe (identité, assiduité, technique, grades, compétitions, notes, codes familles) et le journal des séances. Les photos ne sont pas incluses.</div>'
     + '<button onclick="downloadBackup()" style="display:block;width:100%;margin-bottom:8px;padding:12px 14px;border:1.5px solid var(--gold,#C9A84C);border-radius:9px;background:#FBF7EC;font-weight:800;font-size:13px;color:var(--red,#7B0000);cursor:pointer">⬇ Télécharger la sauvegarde (.json)</button>'
     + '<label style="display:block;width:100%;margin-bottom:8px;padding:12px 14px;border:1.5px solid #999;border-radius:9px;background:#F6F6F6;font-weight:800;font-size:13px;color:#444;cursor:pointer;text-align:left;box-sizing:border-box">⬆ Restaurer une sauvegarde…<input type="file" accept=".json,application/json" style="display:none" onchange="restoreBackup(this.files[0])"></label>'
+    + '<button onclick="openSaison()" style="display:block;width:100%;margin-bottom:8px;padding:11px 14px;border:1.5px dashed var(--red,#7B0000);border-radius:9px;background:#fff;font-weight:800;font-size:12.5px;color:var(--red,#7B0000);cursor:pointer">🎓 Assistant nouvelle saison…</button>'
     + '<button onclick="closeBackup()" style="display:block;width:100%;padding:10px;border:none;background:#EEE;border-radius:9px;font-size:12.5px;cursor:pointer">Fermer</button>'
     + '</div></div>';
   ov.addEventListener('click', function(e){ if (e.target === ov) closeBackup(); });
   document.body.appendChild(ov);
 }
 function closeBackup(){ var o = document.getElementById('backup-ov'); if (o) o.remove(); }
+
+// ══════════════════════════════════════════════════════════════════
+//  ASSISTANT NOUVELLE SAISON — bascule annuelle en 3 étapes
+//  1. Archive complète du club (toutes sections + journaux + familles)
+//  2. Remise à zéro des compteurs (identités/ceintures/photos/codes conservés)
+//  3. Mise à jour des étiquettes de saison (fournie par Cyber Fun)
+// ══════════════════════════════════════════════════════════════════
+var _saison = { archiveOk: false, enCours: false };
+
+// Champs d'identité CONSERVÉS lors de la bascule ; tout le reste est remis à zéro.
+var SAISON_CHAMPS_CONSERVES = ['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','tel','email','notes-internes'];
+
+function openSaison(){
+  if (typeof isAdmin === 'function' && !isAdmin()){ toast('🔒 Réservé à l\'administrateur.'); return; }
+  if (!db){ toast('⚠️ Connexion Firebase requise.'); return; }
+  closeBackup();
+  _saison.archiveOk = false;
+  var ov = document.createElement('div');
+  ov.id = 'saison-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML = '<div style="background:#FFFDF8;border-radius:16px;max-width:560px;width:100%;max-height:94vh;overflow-y:auto;box-shadow:0 26px 80px rgba(0,0,0,.6)">'
+    + '<div style="background:var(--red,#7B0000);color:#fff;padding:14px 18px;font-weight:900;font-size:16px">🎓 Assistant nouvelle saison</div>'
+    + '<div style="padding:16px 18px">'
+    + '<div style="font-size:12.5px;color:#555;line-height:1.55;margin-bottom:12px">'
+    +   'Cette bascule prépare le club pour la saison suivante, <b>pour tous les groupes à la fois</b>.<br>'
+    +   '<span style="color:#1A5E20">✔ Conservés :</span> identités, coordonnées, ceintures actuelles, photos, codes familles, notes internes.<br>'
+    +   '<span style="color:#B00020">↺ Remis à zéro :</span> assiduité, examens de grades, compétitions, évaluations physiques, bilans, adhésions et certificats, objectifs, carnets de correspondance.'
+    + '</div>'
+    + '<div style="border:1.5px solid var(--gold,#C9A84C);border-radius:11px;padding:12px 14px;margin-bottom:10px;background:#FBF7EC">'
+    +   '<div style="font-weight:800;font-size:13px;color:#7B0000;margin-bottom:6px">Étape 1 — Archiver la saison écoulée</div>'
+    +   '<div style="font-size:11.5px;color:#666;margin-bottom:8px">Un fichier unique contenant toutes les fiches, journaux de séances et messages des familles, de tous les groupes. À conserver précieusement.</div>'
+    +   '<button id="saison-btn-arch" onclick="saisonArchive()" style="border:1.5px solid var(--gold,#C9A84C);background:#fff;color:#7B0000;border-radius:9px;padding:10px 15px;font-weight:800;font-size:12.5px;cursor:pointer">⬇ Télécharger l\'archive complète du club</button>'
+    +   '<span id="saison-arch-ok" style="display:none;margin-left:8px;color:#1A5E20;font-weight:800;font-size:12px">✔ Archive téléchargée</span>'
+    + '</div>'
+    + '<div style="border:1.5px solid #E2DCCB;border-radius:11px;padding:12px 14px;margin-bottom:10px">'
+    +   '<div style="font-weight:800;font-size:13px;color:#7B0000;margin-bottom:6px">Étape 2 — Remettre les compteurs à zéro</div>'
+    +   '<div style="font-size:11.5px;color:#666;margin-bottom:8px">Irréversible sans l\'archive de l\'étape 1. L\'opération traite tous les groupes et se synchronise sur tous les appareils.</div>'
+    +   '<button id="saison-btn-reset" onclick="saisonReset()" disabled style="border:none;background:#CCC;color:#fff;border-radius:9px;padding:10px 15px;font-weight:800;font-size:12.5px;cursor:not-allowed">🔄 Lancer la remise à zéro</button>'
+    +   '<div id="saison-progress" style="margin-top:8px;font-size:11.5px;color:#7B0000;font-weight:700"></div>'
+    + '</div>'
+    + '<div style="border:1.5px dashed #BBB;border-radius:11px;padding:11px 14px;margin-bottom:12px;font-size:11.5px;color:#777">'
+    +   '<b>Étape 3 — Étiquettes de saison :</b> la mise à jour des applications (nouvelle saison affichée, nouveaux compteurs de séances) est fournie par Cyber Fun dans le cadre de la maintenance. Contact : contact.cyberfun@gmail.com'
+    + '</div>'
+    + '<button onclick="closeSaison()" style="display:block;width:100%;padding:10px;border:none;background:#EEE;border-radius:9px;font-size:12.5px;cursor:pointer">Fermer</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+function closeSaison(){ if (_saison.enCours){ toast('⏳ Opération en cours — patientez.'); return; } var o = document.getElementById('saison-ov'); if (o) o.remove(); }
+
+function saisonArchive(){
+  if (!db) return;
+  var btn = document.getElementById('saison-btn-arch');
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Lecture de tous les groupes…'; }
+  var gids = Object.keys(GROUPS);
+  var pack = {
+    type: 'club-archive', version: 1,
+    club: CLUB.nomCourt, saison: CLUB.saison, saisonCle: CLUB.saisonCle,
+    exportedAt: new Date().toISOString(),
+    groupes: {}
+  };
+  var jobs = gids.map(function(gid){
+    return db.collection(GROUPS[gid].col).get().then(function(snap){
+      var students = [];
+      snap.forEach(function(d){
+        var x = d.data();
+        students.push({ id: d.id, meta: x.meta || {}, payload: x.payload || '', famille: x.famille || null });
+      });
+      var journal = [];
+      var total = (GROUPS[gid] && GROUPS[gid].attCount) || 63;
+      for (var i = 0; i < total; i++){
+        try{
+          var j = localStorage.getItem(CLUB.prefixe + '_seance_' + CLUB.saisonCle + '_' + gid + '_' + i);
+          if (j) journal.push({ idx: i, entry: JSON.parse(j) });
+        }catch(e){}
+      }
+      pack.groupes[gid] = { label: GROUPS[gid].label || gid, students: students, journal: journal };
+    });
+  });
+  Promise.all([syncSeancesJournal()].concat(jobs)).then(function(){
+    var blob = new Blob([JSON.stringify(pack, null, 1)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ARCHIVE_SAISON_' + CLUB.nomCourt.replace(/[^A-Za-z0-9]+/g, '_') + '_' + CLUB.saison.replace(/[^0-9-]/g, '') + '.json';
+    a.click();
+    _saison.archiveOk = true;
+    var okEl = document.getElementById('saison-arch-ok'); if (okEl) okEl.style.display = '';
+    if (btn){ btn.disabled = false; btn.textContent = '⬇ Télécharger l\'archive complète du club'; }
+    var rb = document.getElementById('saison-btn-reset');
+    if (rb){ rb.disabled = false; rb.style.background = 'var(--red,#7B0000)'; rb.style.cursor = 'pointer'; }
+    var n = 0; Object.keys(pack.groupes).forEach(function(g){ n += pack.groupes[g].students.length; });
+    toast('⬇ Archive du club téléchargée : ' + n + ' fiche(s), ' + Object.keys(pack.groupes).length + ' groupe(s).');
+  }).catch(function(e){
+    if (btn){ btn.disabled = false; btn.textContent = '⬇ Télécharger l\'archive complète du club'; }
+    toast('❌ Archive impossible : ' + ((e && e.message) || e));
+  });
+}
+
+function saisonResetPayload(old){
+  var np = { fields: {}, att: [], tech: {}, phys: {}, gres: {}, comp: [], carnet: [] };
+  var of = (old && old.fields) || {};
+  SAISON_CHAMPS_CONSERVES.forEach(function(k){ np.fields[k] = of[k] || ''; });
+  // les autres champs SIDS repartent vides (objectifs, adhésion, examens, bilans…)
+  if (typeof SIDS !== 'undefined'){
+    SIDS.forEach(function(k){ if (!(k in np.fields)) np.fields[k] = ''; });
+  }
+  if (old && old.accessCode) np.accessCode = old.accessCode;
+  return np;
+}
+
+function saisonReset(){
+  if (!_saison.archiveOk){ toast('⬇ Téléchargez d\'abord l\'archive (étape 1).'); return; }
+  if (!db || _saison.enCours) return;
+  var saisie = prompt('⚠️ DERNIÈRE CONFIRMATION\n\nCette opération remet à zéro les compteurs de TOUS les groupes.\nElle est irréversible sans l\'archive téléchargée.\n\nTapez exactement : NOUVELLE SAISON');
+  if (saisie !== 'NOUVELLE SAISON'){ toast('Bascule annulée.'); return; }
+  _saison.enCours = true;
+  var prog = document.getElementById('saison-progress');
+  var rb = document.getElementById('saison-btn-reset');
+  if (rb){ rb.disabled = true; rb.style.background = '#CCC'; rb.style.cursor = 'not-allowed'; }
+  var gids = Object.keys(GROUPS);
+  var totalFiches = 0, erreurs = 0, gi = 0;
+  var suivant = function(){
+    if (gi >= gids.length){
+      _saison.enCours = false;
+      if (prog) prog.textContent = '✅ Terminé : ' + totalFiches + ' fiche(s) remise(s) à zéro' + (erreurs ? ' — ⚠️ ' + erreurs + ' erreur(s)' : '') + '. Pensez à l\'étape 3 (étiquettes de saison).';
+      toast('🎓 Nouvelle saison : ' + totalFiches + ' fiche(s) basculée(s).');
+      try{ if (typeof switchGroup === 'function') switchGroup(curGroup); }catch(e){}
+      return;
+    }
+    var gid = gids[gi];
+    if (prog) prog.textContent = '⏳ Groupe ' + (gi + 1) + '/' + gids.length + ' — ' + (GROUPS[gid].label || gid) + '…';
+    db.collection(GROUPS[gid].col).get().then(function(snap){
+      var jobs = [];
+      snap.forEach(function(d){
+        var x = d.data(); var old = null;
+        try{ old = x.payload ? JSON.parse(x.payload) : {}; }catch(e){ old = {}; }
+        var np = saisonResetPayload(old);
+        var famVide = { objectifs: '', carnet: [] };
+        jobs.push(
+          db.collection(GROUPS[gid].col).doc(d.id).update({ payload: JSON.stringify(np), famille: famVide })
+            .then(function(){
+              totalFiches++;
+              try{
+                localStorage.setItem(CLUB.prefixe + '_s_' + CLUB.saisonCle + '_' + d.id, JSON.stringify(np));
+                localStorage.setItem(CLUB.prefixe + '_s_' + CLUB.saisonCle + '_' + d.id + '_fam', JSON.stringify(famVide));
+              }catch(e){}
+            })
+            .catch(function(){ erreurs++; })
+        );
+      });
+      return Promise.all(jobs);
+    }).catch(function(){ erreurs++; }).then(function(){ gi++; suivant(); });
+  };
+  suivant();
+}
+
 
 // ══════════════════════════════════════════════════════════════════
 //  PROGRAMME DU GROUPE — checklist partagée entre enseignants
@@ -2792,7 +2948,7 @@ function downloadBackup(){
   if (db){
     db.collection(GROUPS[curGroup].col).get().then(function(snap){
       var students = [];
-      snap.forEach(function(d){ var x = d.data(); students.push({ id: d.id, meta: x.meta || {}, payload: x.payload || '' }); });
+      snap.forEach(function(d){ var x = d.data(); students.push({ id: d.id, meta: x.meta || {}, payload: x.payload || '', famille: x.famille || null }); });
       build(students);
     }).catch(function(){ toast('❌ Lecture Firebase impossible.'); });
   } else {
@@ -2825,7 +2981,9 @@ function restoreBackup(file){
     var jobs = pack.students.map(function(s){
       if (!s || !s.id) return Promise.resolve();
       localStorage.setItem(KS(s.id), s.payload || '');
-      return col.doc(s.id).set({ meta: s.meta || {}, payload: s.payload || '' });
+      var docR = { meta: s.meta || {}, payload: s.payload || '' };
+      if (s.famille) docR.famille = s.famille;
+      return col.doc(s.id).set(docR);
     });
     (pack.journal || []).forEach(function(j){
       if (j && j.entry != null && j.idx != null){
