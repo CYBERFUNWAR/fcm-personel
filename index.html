@@ -1311,8 +1311,25 @@ function switchGroup(gid){
   document.getElementById('cur-display').textContent = 'Sélectionner un élève';
   document.querySelectorAll('.panel').forEach(p => { /* reset fields */ });
   // Relancer la sync Firebase pour ce groupe
-  if(db) startRealtimeSync();
-  if(db) syncSeancesJournal();
+  if(db){
+    // Les règles de sécurité exigent une session authentifiée : on attend
+    // que Firebase Auth ait restauré la session avant de lancer les synchros,
+    // sinon la première requête part anonyme et se fait refuser.
+    var _syncLance = false;
+    window._demarrerSyncs = function(){
+      if(_syncLance) return;
+      _syncLance = true;
+      startRealtimeSync();
+      syncSeancesJournal();
+    };
+    if(window._fbAuth){
+      if(window._fbAuth.currentUser){ window._demarrerSyncs(); }
+      // sinon : onAuthStateChanged appellera _demarrerSyncs à la restauration
+      // de session ou au prochain login (voir initFirebase)
+    } else {
+      window._demarrerSyncs();
+    }
+  }
   // Rafraîchir la liste
   renderSlist();
   // Charger le dernier élève de ce groupe (ou vider le formulaire)
@@ -1508,7 +1525,9 @@ function initFirebase(cfg){
       if(firebase.auth){
         window._fbAuth = firebase.auth();
         window._fbAuth.onAuthStateChanged(function(u){
-          if(!u){
+          if(u){
+            if(typeof window._demarrerSyncs === 'function') window._demarrerSyncs();
+          } else {
             try{
               var s = JSON.parse(localStorage.getItem(KAUTH)||'{}');
               if(s.ok && s.role==='eleve'){ window._fbAuth.signInAnonymously().catch(function(){}); }
