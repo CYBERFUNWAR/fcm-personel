@@ -2030,7 +2030,18 @@ function openAppel(){
         });
       }).catch(function(){ /* mode local */ })
     : Promise.resolve();
-  Promise.all([loadDocs, syncSeancesJournal()]).then(function(){
+  // Photos manquantes en cache local : les rapatrier depuis Firebase (une seule fois par appareil)
+  var loadPhotos = db
+    ? Promise.all(list.filter(function(s){ return !localStorage.getItem(CLUB.prefixe+'_photo_'+s.id); })
+        .map(function(s){
+          return db.collection('photos').doc(s.id).get().then(function(doc){
+            if (doc.exists && doc.data() && doc.data().data){
+              try{ localStorage.setItem(CLUB.prefixe+'_photo_'+s.id, doc.data().data); }catch(e){}
+            }
+          }).catch(function(){});
+        }))
+    : Promise.resolve();
+  Promise.all([loadDocs, loadPhotos, syncSeancesJournal()]).then(function(){
     // Compléter avec les copies locales (élèves hors ligne / non synchronisés)
     _appel.list.forEach(function(s){
       if (!_appel.docs[s.id] || !_appel.docs[s.id].data){
@@ -2155,8 +2166,8 @@ function appelDrawGrid(){
     chip.style.cssText = 'position:relative;display:flex;flex-direction:column;padding:0;border-radius:14px;cursor:pointer;overflow:hidden;transition:all .1s;border:3px solid ' + (on ? '#1A9E30' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA') + (on ? ';box-shadow:0 4px 14px rgba(26,158,48,.3)' : '');
     var photo = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     var avatar = photo
-      ? '<img src="'+photo+'" style="width:100%;height:130px;object-fit:cover;object-position:center top;display:block'+(on?'':';filter:grayscale(.55) opacity(.75)')+'">'
-      : '<div style="width:100%;height:130px;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:38px">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div>';
+      ? '<img src="'+photo+'" style="width:100%;height:140px;object-fit:cover;object-position:center 28%;display:block">'
+      : '<div style="width:100%;height:140px;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:38px">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div>';
     chip.innerHTML = avatar
       + '<div style="position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;'+(on?'background:#1A9E30;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35)':'background:rgba(255,255,255,.85);color:#AAA;border:1.5px solid #CCC')+'">'+(on?'✓':'')+'</div>'
       + '<div style="padding:8px 10px 9px;text-align:center;width:100%;box-sizing:border-box">'
