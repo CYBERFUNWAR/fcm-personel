@@ -53,8 +53,15 @@ window.CLUB = {
 
   /* ── Accès ────────────────────────────────────────────────────────── */
   motsDePasse : {
-    admin : "FCM1984",   // accès complet
-    modo  : "FCM2627"    // accès modérateur
+    admin : "FCM1984",   // secours HORS LIGNE uniquement (la vraie vérification se fait sur Firebase)
+    modo  : "FCM2627"
+  },
+  /* Comptes Firebase Authentication (console → Authentication → Utilisateurs).
+     Le mot de passe tapé à l'écran est vérifié par Firebase sur ces comptes :
+     c'est lui qui protège réellement la base de données (règles de sécurité). */
+  comptes : {
+    admin : "admin@fcm.cyberfun.fr",
+    modo  : "profs@fcm.cyberfun.fr"
   },
 
   /* ── Préfixe technique de stockage local ──────────────────────────── */
@@ -668,19 +675,41 @@ function pwLogin(){
     localStorage.setItem(KAUTH, JSON.stringify({ok:true, role:'eleve', code:code, expiry:expiry}));
     unlockApp();
     resetIdle();
-    // Lancer la recherche de la fiche correspondant au code
-    if(typeof viewerLoadByCode==='function'){ viewerLoadByCode(code); }
+    // Session anonyme Firebase (nécessaire pour lire la base), puis recherche du code
+    var lance = function(){ if(typeof viewerLoadByCode==='function'){ viewerLoadByCode(code); } };
+    if(window._fbAuth && !window._fbAuth.currentUser){
+      window._fbAuth.signInAnonymously().then(lance).catch(lance);
+    } else { lance(); }
     return;
   }
-  // ── Connexion admin / modérateur par mot de passe ──
+  // ── Connexion admin / modérateur : vérification par Firebase Authentication ──
   var input = document.getElementById('pw-input');
   var val = input ? input.value.trim() : '';
-  var ok = (role==='admin' && val===PASS_ADMIN) || (role==='modo' && val===PASS_MODO);
-  if(ok){
+  if(!val){ showLoginError(input); return; }
+  var grantAccess = function(){
     var exp = Date.now() + 24*60*60*1000;
     localStorage.setItem(KAUTH, JSON.stringify({ok:true, role:role, expiry:exp}));
     unlockApp();
     resetIdle();
+  };
+  var email = (CLUB.comptes && CLUB.comptes[role]) || '';
+  if(window._fbAuth && email && navigator.onLine !== false){
+    var btn = document.getElementById('pw-btn');
+    if(btn){ btn.disabled = true; btn.textContent = '⏳ Vérification…'; }
+    window._fbAuth.signInWithEmailAndPassword(email, val)
+      .then(function(){ grantAccess(); })
+      .catch(function(err){
+        var reseau = err && (err.code==='auth/network-request-failed' || err.code==='auth/internal-error');
+        if(reseau && ((role==='admin' && val===PASS_ADMIN) || (role==='modo' && val===PASS_MODO))){
+          grantAccess();
+          if(typeof toast==='function') toast('📴 Connexion hors ligne : les données ne seront pas synchronisées.');
+        } else {
+          showLoginError(input);
+        }
+      })
+      .finally(function(){ if(btn){ btn.disabled = false; btn.textContent = '🔓 CONNEXION'; } });
+  } else if((role==='admin' && val===PASS_ADMIN) || (role==='modo' && val===PASS_MODO)){
+    grantAccess();
   } else {
     showLoginError(input);
   }
@@ -697,6 +726,7 @@ function getViewerCode(){
 }
 
 function logout(){
+  try{ if(window._fbAuth) window._fbAuth.signOut(); }catch(e){}
   localStorage.removeItem(KAUTH);
   location.reload();
 }
@@ -863,6 +893,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
   </div>
 
 
+  <div id="obj-eleve-hint" style="display:none;margin-top:6px;font-size:11.5px;color:#1A5E20;background:#E8F5E9;border-radius:8px;padding:7px 11px"></div>
   <button id="btn-obj-save" class="eleve-only" onclick="saveObjectifsEleve()" style="display:none;margin-top:6px;padding:9px 16px;border:none;border-radius:8px;background:var(--red,#7B0000);color:#fff;font-weight:800;font-size:12.5px;cursor:pointer">💾 Enregistrer mes objectifs</button>
 
   <!-- CARNET DE CORRESPONDANCE (famille → enseignants ; lecture seule côté profs) -->
@@ -1473,6 +1504,19 @@ function initFirebase(cfg){
       firebase.apps.forEach(a=>a.delete());
     }
     const app=firebase.initializeApp(cfg);
+    try{
+      if(firebase.auth){
+        window._fbAuth = firebase.auth();
+        window._fbAuth.onAuthStateChanged(function(u){
+          if(!u){
+            try{
+              var s = JSON.parse(localStorage.getItem(KAUTH)||'{}');
+              if(s.ok && s.role==='eleve'){ window._fbAuth.signInAnonymously().catch(function(){}); }
+            }catch(e){}
+          }
+        });
+      }
+    }catch(e){}
     db=firebase.firestore(app);
 
     setFbStatus(true,'Connecté ☁️');
@@ -1590,6 +1634,8 @@ async function fbLoad(id){
     const doc=await db.collection(GROUPS[curGroup].col).doc(id).get();
     if(!doc.exists) return null;
     const d = doc.data();
+    window._familleDoc = d.famille || null;   // objectifs/carnet écrits par la famille (champ séparé)
+    if(window._familleDoc){ try{ localStorage.setItem(KS(id)+'_fam', JSON.stringify(d.famille)); }catch(e){} }
     // Nouveau format : données complètes dans "payload"
     if(d.payload){
       try{ return JSON.parse(d.payload); }
@@ -2612,17 +2658,43 @@ function renderProgramme(){
 }
 
 
+
+
+// ── Données « famille » (champ séparé du document : objectifs + carnet écrits depuis l'accès élève) ──
+var famille = {};
+function applyFamille(){
+  famille = (window._familleDoc && typeof window._familleDoc === 'object') ? window._familleDoc : {};
+  renderCarnet();
+  // Objectifs : côté élève, afficher sa propre version ; côté prof, montrer la proposition de l'élève
+  var ta = document.getElementById('objectifs');
+  var hint = document.getElementById('obj-eleve-hint');
+  if (typeof isViewer === 'function' && isViewer()){
+    if (ta && famille.objectifs) ta.value = famille.objectifs;
+    if (hint) hint.style.display = 'none';
+  } else if (hint){
+    var fo = (famille.objectifs || '').trim();
+    var po = ta ? (ta.value || '').trim() : '';
+    if (fo && fo !== po){
+      hint.style.display = '';
+      hint.textContent = '🎯 Écrit par l\'élève depuis son accès : « ' + fo + ' »';
+    } else {
+      hint.style.display = 'none';
+    }
+  }
+}
 // ── Carnet de correspondance : rendu de la liste ──
 function renderCarnet(){
   var box = document.getElementById('carnet-liste');
   if (!box) return;
-  if (!carnet.length){
+  var carnetAll = (carnet || []).concat((famille && Array.isArray(famille.carnet)) ? famille.carnet : []);
+  carnetAll.sort(function(a, b){ return String(a.date||'').localeCompare(String(b.date||'')); });
+  if (!carnetAll.length){
     box.innerHTML = '<div style="font-size:11.5px;color:#8FA3C4;font-style:italic">Aucun message pour le moment.</div>';
     return;
   }
   var h = '';
-  for (var i = carnet.length - 1; i >= 0; i--){
-    var m = carnet[i] || {};
+  for (var i = carnetAll.length - 1; i >= 0; i--){
+    var m = carnetAll[i] || {};
     var d = m.date ? m.date.slice(0, 10).split('-').reverse().join('/') : '';
     h += '<div style="background:#fff;border:1px solid #D6E1F2;border-radius:8px;padding:8px 11px;margin-bottom:6px">'
       + '<div style="font-size:10.5px;color:#5B739C;font-weight:700;margin-bottom:2px">' + d + (m.de ? ' — ' + String(m.de).replace(/</g, '&lt;') : '') + '</div>'
@@ -2638,12 +2710,14 @@ function _patchFicheEleve(mutator, onDone){
   var ref = db.collection(GROUPS[curGroup].col).doc(curId);
   ref.get().then(function(snap){
     if (!snap.exists){ toast('❌ Fiche introuvable.'); return; }
-    var d = snap.data(); var pl = {};
-    try{ pl = d.payload ? JSON.parse(d.payload) : {}; }catch(e){}
-    mutator(pl);
-    return ref.update({ payload: JSON.stringify(pl) }).then(function(){
-      try{ localStorage.setItem(KS(curId), JSON.stringify(pl)); }catch(e){}
-      if (onDone) onDone(pl);
+    var d = snap.data();
+    var fam = (d.famille && typeof d.famille === 'object') ? d.famille : {};
+    mutator(fam);
+    // Seul le champ « famille » est modifié : les règles de sécurité n'autorisent que lui côté élève.
+    return ref.update({ famille: fam }).then(function(){
+      try{ localStorage.setItem(KS(curId)+'_fam', JSON.stringify(fam)); }catch(e){}
+      famille = fam;
+      if (onDone) onDone(fam);
     });
   }).catch(function(e){ toast('❌ Enregistrement impossible : ' + ((e && e.message) || e)); });
 }
@@ -2651,9 +2725,8 @@ function _patchFicheEleve(mutator, onDone){
 function saveObjectifsEleve(){
   if (typeof isViewer === 'function' && !isViewer()) return; // réservé au mode élève
   var val = (document.getElementById('objectifs') || {}).value || '';
-  _patchFicheEleve(function(pl){
-    pl.fields = pl.fields || {};
-    pl.fields.objectifs = val;
+  _patchFicheEleve(function(fam){
+    fam.objectifs = val;
   }, function(){
     toast('✅ Tes objectifs de la saison sont enregistrés. Bon entraînement ! 🥊');
   });
@@ -2666,11 +2739,10 @@ function envoyerCarnet(){
   var msg = (msgEl && msgEl.value || '').trim();
   if (!msg){ toast('✍️ Écris ton message avant d\'envoyer.'); if (msgEl) msgEl.focus(); return; }
   var entry = { date: new Date().toISOString(), de: de, msg: msg };
-  _patchFicheEleve(function(pl){
-    if (!Array.isArray(pl.carnet)) pl.carnet = [];
-    pl.carnet.push(entry);
-  }, function(pl){
-    carnet = pl.carnet.slice();
+  _patchFicheEleve(function(fam){
+    if (!Array.isArray(fam.carnet)) fam.carnet = [];
+    fam.carnet.push(entry);
+  }, function(fam){
     renderCarnet();
     if (msgEl) msgEl.value = '';
     toast('📨 Message envoyé aux enseignants.');
@@ -2794,7 +2866,10 @@ async function loadStudent(id){
     toast('🔑 Code généré : '+data.accessCode);
   }
 
+  if(!db || window._familleDoc===undefined){ try{ window._familleDoc = JSON.parse(localStorage.getItem(KS(id)+'_fam')); }catch(e){ window._familleDoc=null; } }
   apply(data);
+  applyFamille();
+  window._familleDoc = undefined;
   _loading=false;
   _dirty=false;
   setSinf('✓ Fiche chargée','ok');
@@ -3460,6 +3535,7 @@ async function appInit(){
 <!-- Firebase SDK chargé en dernier pour garantir la disponibilité -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
   // Lancer l'app une fois le DOM ET Firebase chargés
   document.addEventListener('DOMContentLoaded', function(){
