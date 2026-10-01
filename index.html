@@ -2227,7 +2227,7 @@ function renderAppel(){
   ov.innerHTML =
     '<div style="background:#FFFDF8;border-radius:16px;max-width:980px;width:100%;max-height:96vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
     + '<div style="background:var(--red,#7B0000);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
-    +   '<div style="font-weight:900;font-size:16px">📋 Appel — ' + (GROUPS[curGroup].label || '') + '</div>'
+    +   '<div style="font-weight:900;font-size:16px">📋 Appel — ' + (GROUPS[curGroup].label || '') + ' · r2' + '</div>'
     +   '<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'
     +     '<button onclick="appelNav(-1)" style="border:none;background:rgba(255,255,255,.18);color:#fff;border-radius:7px;padding:5px 11px;font-size:15px;cursor:pointer">◀</button>'
     +     '<div id="appel-session" style="font-weight:800;font-size:13.5px;min-width:150px;text-align:center"></div>'
@@ -2347,8 +2347,8 @@ function appelDrawGrid(){
     var _nm = s.nom    || (_d && _d.meta && _d.meta.nom)    || (_d && _d.data && _d.data.fields && _d.data.fields.nom)    || '';
     // Zone photo au format portrait (photo d'identité ~3/4) : le visage entre en entier
     var avatar = photo
-      ? '<div style="position:relative;width:100%;padding-top:112%;background:#E4E4E4"><img src="'+photo+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center 12%;display:block"></div>'
-      : '<div style="position:relative;width:100%;padding-top:112%;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+'"><div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:40px">'+((_pn||'?').charAt(0)+(_nm||'?').charAt(0)).toUpperCase()+'</div></div>';
+      ? '<img src="'+photo+'" style="width:100%;height:190px;object-fit:cover;object-position:center 15%;display:block;background:#E4E4E4">'
+      : '<div style="width:100%;height:190px;background:'+(on?'#1A9E30':'#ADADAD')+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:40px;box-sizing:border-box">'+((_pn||'?').charAt(0)+(_nm||'?').charAt(0)).toUpperCase()+'</div>';
     // Le liseré de ceinture vit dans sa propre rangée en pied de carte : jamais recouvert,
     // et le filet supérieur rend visible même la ceinture blanche.
     var bandH = /noire|dan/i.test(_ct) ? 17 : 10;
