@@ -2342,10 +2342,13 @@ function appelDrawGrid(){
     var _d = _appel.docs[s.id];
     var _ct = (_d && _d.data && _d.data.fields && _d.data.fields.ceinture) || (_d && _d.meta && _d.meta.ceinture) || s.ceinture || '';
     var band = beltBand(_ct);
+    // Nom/prénom : fiche complète d'abord (source de vérité), liste locale en secours
+    var _pn = s.prenom || (_d && _d.meta && _d.meta.prenom) || (_d && _d.data && _d.data.fields && _d.data.fields.prenom) || '';
+    var _nm = s.nom    || (_d && _d.meta && _d.meta.nom)    || (_d && _d.data && _d.data.fields && _d.data.fields.nom)    || '';
     // Zone photo au format portrait (photo d'identité ~3/4) : le visage entre en entier
     var avatar = photo
       ? '<div style="position:relative;width:100%;padding-top:112%;background:#E4E4E4"><img src="'+photo+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center 12%;display:block"></div>'
-      : '<div style="position:relative;width:100%;padding-top:112%;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+'"><div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:40px">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div></div>';
+      : '<div style="position:relative;width:100%;padding-top:112%;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+'"><div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:40px">'+((_pn||'?').charAt(0)+(_nm||'?').charAt(0)).toUpperCase()+'</div></div>';
     // Le liseré de ceinture vit dans sa propre rangée en pied de carte : jamais recouvert,
     // et le filet supérieur rend visible même la ceinture blanche.
     var bandH = /noire|dan/i.test(_ct) ? 17 : 10;
@@ -2353,8 +2356,8 @@ function appelDrawGrid(){
     chip.innerHTML = avatar
       + '<div style="position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;'+(on?'background:#1A9E30;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35)':'background:rgba(255,255,255,.85);color:#AAA;border:1.5px solid #CCC')+'">'+(on?'✓':'')+'</div>'
       + '<div style="padding:7px 9px 8px;text-align:center;width:100%;box-sizing:border-box">'
-      +   '<div style="font-weight:900;font-size:15px;color:'+(on?'#136B22':'#333')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.prenom||'')+'</div>'
-      +   '<div style="font-size:11.5px;color:#888;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.nom||'')+'</div>'
+      +   '<div style="font-weight:900;font-size:15px;color:'+(on?'#136B22':'#333')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_pn+'</div>'
+      +   '<div style="font-size:11.5px;color:#888;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_nm+'</div>'
       + '</div>'
       + bandRow;
     chip.onclick = function(){ if(_appel.locked){ toast('🔒 Séance validée — modification réservée à l\'administrateur.'); return; } _appel.present[s.id] = !_appel.present[s.id]; appelDrawGrid(); };
