@@ -1332,6 +1332,7 @@ function switchGroup(gid){
       _syncLance = true;
       startRealtimeSync();
       syncSeancesJournal();
+      setTimeout(function(){ try{ prefetchPhotosGroupe(); }catch(e){} }, 2500);
     };
     if(window._fbAuth){
       if(window._fbAuth.currentUser){ window._demarrerSyncs(); }
@@ -1440,6 +1441,21 @@ async function fbSavePhoto(studentId, dataUrl){
 }
 
 // Charger photo depuis Firestore ou localStorage
+var _photosPrechargees = {};
+function prefetchPhotosGroupe(){
+  if (!db || _photosPrechargees[curGroup]) return;
+  _photosPrechargees[curGroup] = true;
+  var list = (typeof getList === 'function' ? getList() : []) || [];
+  var manquantes = list.filter(function(s){ return !localStorage.getItem(CLUB.prefixe+'_photo_'+s.id); });
+  if (!manquantes.length) return;
+  Promise.all(manquantes.map(function(s){
+    return db.collection('photos').doc(s.id).get().then(function(doc){
+      if (doc.exists && doc.data() && doc.data().data){
+        try{ localStorage.setItem(CLUB.prefixe+'_photo_'+s.id, doc.data().data); }catch(e){}
+      }
+    }).catch(function(){});
+  })).then(function(){ try{ renderSlist(); }catch(e){} });
+}
 async function fbLoadPhoto(studentId){
   // D'abord localStorage (instantané)
   const cached = localStorage.getItem(CLUB.prefixe+'_photo_'+studentId);
@@ -2319,21 +2335,28 @@ function appelDrawGrid(){
   grid.innerHTML = '';
   _appel.list.forEach(function(s){
     var on = _appel.present[s.id];
-    var chip = document.createElement('button');
-    chip.style.cssText = 'position:relative;display:flex;flex-direction:column;padding:0;border-radius:14px;cursor:pointer;overflow:hidden;transition:all .1s;border:3px solid ' + (on ? '#1A9E30' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA') + (on ? ';box-shadow:0 4px 14px rgba(26,158,48,.3)' : '');
+    var chip = document.createElement('div');
+    chip.setAttribute('role', 'button');
+    chip.style.cssText = 'position:relative;display:block;border-radius:14px;cursor:pointer;overflow:hidden;transition:all .1s;user-select:none;-webkit-tap-highlight-color:transparent;border:3px solid ' + (on ? '#1A9E30' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA') + (on ? ';box-shadow:0 4px 14px rgba(26,158,48,.3)' : '');
     var photo = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     var _d = _appel.docs[s.id];
     var _ct = (_d && _d.data && _d.data.fields && _d.data.fields.ceinture) || (_d && _d.meta && _d.meta.ceinture) || s.ceinture || '';
     var band = beltBand(_ct);
+    // Zone photo au format portrait (photo d'identité ~3/4) : le visage entre en entier
     var avatar = photo
-      ? '<div style="position:relative;width:100%;height:140px"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:center 28%;display:block">'+band+'</div>'
-      : '<div style="position:relative;width:100%;height:140px;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:38px">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+band+'</div>';
+      ? '<div style="position:relative;width:100%;padding-top:112%;background:#E4E4E4"><img src="'+photo+'" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center 12%;display:block"></div>'
+      : '<div style="position:relative;width:100%;padding-top:112%;background:'+(on?'linear-gradient(160deg,#1A9E30,#136B22)':'linear-gradient(160deg,#C5C5C5,#9A9A9A)')+'"><div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:40px">'+((s.prenom||'?').charAt(0)+(s.nom||'?').charAt(0)).toUpperCase()+'</div></div>';
+    // Le liseré de ceinture vit dans sa propre rangée en pied de carte : jamais recouvert,
+    // et le filet supérieur rend visible même la ceinture blanche.
+    var bandH = /noire|dan/i.test(_ct) ? 17 : 10;
+    var bandRow = '<div style="position:relative;height:'+bandH+'px;border-top:1px solid rgba(0,0,0,.14);background:#FFF">'+(band||'')+'</div>';
     chip.innerHTML = avatar
       + '<div style="position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;'+(on?'background:#1A9E30;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35)':'background:rgba(255,255,255,.85);color:#AAA;border:1.5px solid #CCC')+'">'+(on?'✓':'')+'</div>'
-      + '<div style="padding:8px 10px 9px;text-align:center;width:100%;box-sizing:border-box">'
+      + '<div style="padding:7px 9px 8px;text-align:center;width:100%;box-sizing:border-box">'
       +   '<div style="font-weight:900;font-size:15px;color:'+(on?'#136B22':'#333')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.prenom||'')+'</div>'
       +   '<div style="font-size:11.5px;color:#888;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(s.nom||'')+'</div>'
-      + '</div>';
+      + '</div>'
+      + bandRow;
     chip.onclick = function(){ if(_appel.locked){ toast('🔒 Séance validée — modification réservée à l\'administrateur.'); return; } _appel.present[s.id] = !_appel.present[s.id]; appelDrawGrid(); };
     grid.appendChild(chip);
   });
