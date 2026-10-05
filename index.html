@@ -1712,6 +1712,12 @@ function startRealtimeSync(){
     const fbStudents=[];
     snap.forEach(doc=>{
       const d=doc.data();
+      // Miroir local de chaque fiche : stats d'assiduité de la liste et mode hors
+      // ligne à jour sur TOUS les appareils, sans devoir ouvrir chaque fiche.
+      try{
+        if (d.payload) localStorage.setItem(KS(doc.id), d.payload);
+        if (d.famille) localStorage.setItem(KS(doc.id)+'_fam', JSON.stringify(d.famille));
+      }catch(e){}
       // Récupérer le code depuis meta, sinon depuis le payload (rétrocompatibilité)
       let code = d.meta?.accessCode || '';
       if(!code && d.payload){ try{ code = (JSON.parse(d.payload).accessCode)||''; }catch(e){} }
