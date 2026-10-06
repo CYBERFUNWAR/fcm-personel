@@ -84,6 +84,8 @@ window.CLUB = {
     months:{'Sep 2026':3,'Oct 2026':3,'Nov 2026':2,'Déc 2026':3,'Jan 2027':4,'Fév 2027':2,'Mar 2027':5,'Avr 2027':2,'Mai 2027':4,'Juin 2027':3} },
   aerokick:     { label:'Aérokick',                   tabs:[0,1,5],       col:'students_aerokick',     attType:'flat',    attCount:32,  days:'Mardi',
     months:{'Sep 2026':3,'Oct 2026':3,'Nov 2026':3,'Déc 2026':3,'Jan 2027':4,'Fév 2027':2,'Mar 2027':5,'Avr 2027':1,'Mai 2027':4,'Juin 2027':4} },
+  fitboxing:    { label:'Fit Boxing',                 tabs:[0,1,5],       col:'students_fitboxing',    attType:'flat',    attCount:32,  days:'Fit Boxing',
+    months:{'Sep 2026':3,'Oct 2026':3,'Nov 2026':3,'Déc 2026':3,'Jan 2027':4,'Fév 2027':2,'Mar 2027':5,'Avr 2027':1,'Mai 2027':4,'Juin 2027':4} },
   sensei:       { label:'Sensei',                     tabs:[0,1],         col:'students_sensei',       attType:'flat',    attCount:160, days:'Lun – Ven',
     months:{'Sep 2026':13,'Oct 2026':17,'Nov 2026':15,'Déc 2026':14,'Jan 2027':19,'Fév 2027':10,'Mar 2027':23,'Avr 2027':10,'Mai 2027':21,'Juin 2027':18} },
   competiteurs: { label:'Compétiteurs',               tabs:[0,1,2,3,4,5], col:'students_competiteurs', attType:'flat',    attCount:129, days:'Lun/Mar/Jeu/Ven',
@@ -2356,6 +2358,22 @@ function appelDrawGrid(){
     // Nom/prénom : fiche complète d'abord (source de vérité), liste locale en secours
     var _pn = s.prenom || (_d && _d.meta && _d.meta.prenom) || (_d && _d.data && _d.data.fields && _d.data.fields.prenom) || '';
     var _nm = s.nom    || (_d && _d.meta && _d.meta.nom)    || (_d && _d.data && _d.data.fields && _d.data.fields.nom)    || '';
+    // Macaron « dossier » : vert ✓ = cotisation payée + certificat à jour ;
+    // orange = il manque quelque chose (€ cotisation, 🩺 certificat, ! les deux).
+    var _dossier = '';
+    var _f = (_d && _d.data && _d.data.fields) || null;
+    if (_f){
+      var okPay = _f['adh-statut'] === 'paye';
+      var okCert = _f['adh-certif'] === 'ok';
+      if (okPay && okCert){
+        _dossier = '<div title="Dossier complet — cotisation payée, certificat à jour" style="position:absolute;top:7px;left:7px;width:24px;height:24px;border-radius:50%;background:#1A7E2E;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,.35)">✓</div>';
+      } else {
+        var _mq = (!okPay && !okCert) ? '!' : (!okPay ? '€' : '🩺');
+        var _ti = (!okPay && !okCert) ? 'À finaliser : cotisation + certificat médical'
+                : (!okPay ? 'Cotisation à régler' : 'Certificat médical à fournir');
+        _dossier = '<div title="' + _ti + '" style="position:absolute;top:7px;left:7px;width:24px;height:24px;border-radius:50%;background:#E8900C;color:#fff;display:flex;align-items:center;justify-content:center;font-size:' + (_mq === '🩺' ? '12px' : '14px') + ';font-weight:900;box-shadow:0 2px 6px rgba(0,0,0,.35)">' + _mq + '</div>';
+      }
+    }
     // Zone photo au format portrait (photo d'identité ~3/4) : le visage entre en entier
     var avatar = photo
       ? '<img src="'+photo+'" style="width:100%;height:190px;object-fit:cover;object-position:center 15%;display:block;background:#E4E4E4">'
@@ -2366,6 +2384,7 @@ function appelDrawGrid(){
     var bandRow = '<div style="position:relative;height:'+bandH+'px;border-top:1px solid rgba(0,0,0,.14);background:#FFF">'+(band||'')+'</div>';
     chip.innerHTML = avatar
       + '<div style="position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;'+(on?'background:#1A9E30;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35)':'background:rgba(255,255,255,.85);color:#AAA;border:1.5px solid #CCC')+'">'+(on?'✓':'')+'</div>'
+      + _dossier
       + '<div style="padding:7px 9px 8px;text-align:center;width:100%;box-sizing:border-box">'
       +   '<div style="font-weight:900;font-size:15px;color:'+(on?'#136B22':'#333')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_pn+'</div>'
       +   '<div style="font-size:11.5px;color:#888;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_nm+'</div>'
@@ -2639,7 +2658,7 @@ function closeSaison(){ if (_saison.enCours){ toast('⏳ Opération en cours —
 //  PRÉ-INSCRIPTIONS EN LIGNE — les familles remplissent inscription.html,
 //  l'administrateur intègre chaque demande en un clic.
 // ══════════════════════════════════════════════════════════════════
-var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes Loisirs', seniors:'Seniors', aerokick:'Aérokick' };
+var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes Loisirs', seniors:'Seniors', aerokick:'Aérokick', fitboxing:'Fit Boxing' };
 
 // Tarifs annuels par section — stockés dans Firestore (config/tarifs),
 // modifiables en Admin : les prix peuvent changer chaque saison sans toucher au code.
