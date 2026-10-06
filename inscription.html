@@ -55,6 +55,10 @@
       <option value="seniors">Seniors</option>
       <option value="aerokick">Aérokick</option>
     </select>
+    <div id="tarif-box" style="display:none;margin-top:8px;background:#FBF4E2;border:1.5px solid var(--gold);border-radius:9px;padding:10px 13px;font-size:13.5px;color:#6B4E00">
+      💰 Cotisation annuelle <b id="tarif-grp"></b> : <b id="tarif-val"></b> € <span style="color:#8A7430">(licence fédérale incluse)</span><br>
+      <span style="font-size:11.5px">Règlement au club lors de la finalisation de l'inscription.</span>
+    </div>
 
     <div class="row">
       <div><label>Nom *</label><input id="nom" required autocomplete="family-name"></div>
@@ -94,9 +98,9 @@
 
     <button id="btn" type="submit">📨 ENVOYER MA PRÉ-INSCRIPTION</button>
     <div class="err" id="err"></div>
-    <p class="hint" style="margin-top:12px">* champs obligatoires. Le <b>certificat médical</b> signé reste à
-    apporter au club — votre pré-inscription sera finalisée sur place, et votre <b>code d'accès famille</b>
-    (suivi en ligne de la progression) vous sera remis par les enseignants.</p>
+    <p class="hint" style="margin-top:12px">* champs obligatoires. Lors de la finalisation au club, prévoyez :
+    le <b>certificat médical signé</b> et le <b>règlement de la cotisation annuelle</b><span id="tarif-rappel"></span>.
+    Votre <b>code d'accès famille</b> (suivi en ligne de la progression) vous sera remis par les enseignants.</p>
   </form>
 
   <div class="ok" id="ok">
@@ -104,8 +108,8 @@
     <h2>Pré-inscription envoyée !</h2>
     <p>Merci ! Le club a bien reçu votre demande.<br><br>
     <b>Prochaine étape :</b> venez au premier cours avec le <b>certificat médical signé</b>
-    (mention compétition si souhaitée). Les enseignants finaliseront l'inscription et vous remettront
-    votre code d'accès famille.</p>
+    (mention compétition si souhaitée) et le <b>règlement de la cotisation annuelle<span id="tarif-ok"></span></b>.
+    Les enseignants finaliseront l'inscription et vous remettront votre code d'accès famille.</p>
   </div>
 
   <div class="foot">Julien Boulet · Cyberfun © 2026 — Tous droits réservés</div>
@@ -131,6 +135,33 @@ try{
 }catch(e){}
 
 function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+// Tarifs par section (config/tarifs, gérés par le club dans son application)
+var TARIFS = null;
+function majTarif(){
+  var g = val('groupe');
+  var box = document.getElementById('tarif-box');
+  if (!box) return;
+  if (TARIFS && TARIFS[g] !== undefined && TARIFS[g] !== null){
+    document.getElementById('tarif-grp').textContent = document.querySelector('#groupe option[value="' + g + '"]').textContent;
+    document.getElementById('tarif-val').textContent = TARIFS[g];
+    document.getElementById('tarif-rappel').textContent = ' (' + TARIFS[g] + ' €, licence incluse)';
+    box.style.display = '';
+  } else {
+    box.style.display = 'none';
+    document.getElementById('tarif-rappel').textContent = '';
+  }
+}
+document.getElementById('groupe').addEventListener('change', majTarif);
+if (auth && db){
+  var lireTarifs = function(){
+    db.collection('config').doc('tarifs').get()
+      .then(function(s){ TARIFS = s.exists ? (s.data() || {}) : {}; majTarif(); })
+      .catch(function(){});
+  };
+  if (auth.currentUser) lireTarifs();
+  else auth.signInAnonymously().then(lireTarifs).catch(function(){});
+}
 function showErr(m){ var e = document.getElementById('err'); e.textContent = m; e.style.display = 'block'; }
 
 document.getElementById('f').addEventListener('submit', function(ev){
@@ -152,6 +183,10 @@ document.getElementById('f').addEventListener('submit', function(ev){
   btn.disabled = true; btn.textContent = '⏳ Envoi en cours…';
 
   var done = function(){
+    var g = val('groupe');
+    if (TARIFS && TARIFS[g] !== undefined && TARIFS[g] !== null){
+      document.getElementById('tarif-ok').textContent = ' (' + TARIFS[g] + ' €, licence incluse)';
+    }
     document.getElementById('f').style.display = 'none';
     document.getElementById('ok').style.display = 'block';
     window.scrollTo(0, 0);

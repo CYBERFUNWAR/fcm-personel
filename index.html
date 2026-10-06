@@ -2641,6 +2641,47 @@ function closeSaison(){ if (_saison.enCours){ toast('⏳ Opération en cours —
 // ══════════════════════════════════════════════════════════════════
 var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes Loisirs', seniors:'Seniors', aerokick:'Aérokick' };
 
+// Tarifs annuels par section — stockés dans Firestore (config/tarifs),
+// modifiables en Admin : les prix peuvent changer chaque saison sans toucher au code.
+var _tarifs = null;
+function chargerTarifs(cb){
+  if (!db){ if (cb) cb(); return; }
+  db.collection('config').doc('tarifs').get().then(function(snap){
+    _tarifs = snap.exists ? (snap.data() || {}) : {};
+    if (cb) cb();
+  }).catch(function(){ _tarifs = _tarifs || {}; if (cb) cb(); });
+}
+function togglePreinsTarifs(){
+  var box = document.getElementById('preins-tarifs');
+  if (!box) return;
+  if (box.style.display !== 'none'){ box.style.display = 'none'; return; }
+  var t = _tarifs || {};
+  box.innerHTML = Object.keys(PREINS_GROUPES).map(function(g){
+    var v = (t[g] !== undefined && t[g] !== null && t[g] !== '') ? t[g] : '';
+    return '<div style="display:inline-flex;align-items:center;gap:5px;margin:4px 10px 4px 0">'
+      + '<span style="font-size:11.5px;color:#555;font-weight:700">' + PREINS_GROUPES[g] + '</span>'
+      + '<input id="tarif-' + g + '" type="number" min="0" step="1" value="' + v + '" style="width:72px;border:1.5px solid #CCC;border-radius:7px;padding:6px 8px;font-size:13px;text-align:right"> €'
+      + '</div>';
+  }).join('')
+  + '<div style="margin-top:8px"><button onclick="sauverTarifs()" style="border:none;background:#1A7E2E;color:#fff;border-radius:8px;padding:8px 14px;font-weight:800;font-size:12px;cursor:pointer">💾 Enregistrer les tarifs</button></div>';
+  box.style.display = '';
+}
+function sauverTarifs(){
+  if (!db) return;
+  var t = {};
+  Object.keys(PREINS_GROUPES).forEach(function(g){
+    var el = document.getElementById('tarif-' + g);
+    var v = el ? parseFloat(el.value) : NaN;
+    if (!isNaN(v) && v >= 0) t[g] = v;
+  });
+  t.maj = Date.now();
+  db.collection('config').doc('tarifs').set(t).then(function(){
+    _tarifs = t;
+    toast('💾 Tarifs enregistrés — la page d\'inscription les affiche désormais.');
+    var box = document.getElementById('preins-tarifs'); if (box) box.style.display = 'none';
+  }).catch(function(e){ toast('❌ ' + ((e && e.code) || e)); });
+}
+
 function _codesExistants(){
   var set = {};
   Object.keys(GROUPS).forEach(function(g){
@@ -2666,9 +2707,15 @@ function openPreins(){
   ov.innerHTML = '<div style="background:#FFFDF8;border-radius:16px;max-width:680px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.6)">'
     + '<div style="background:var(--red,#7B0000);color:#fff;padding:13px 18px;font-weight:900;font-size:16px;display:flex;justify-content:space-between;align-items:center">📥 Pré-inscriptions en ligne'
     + '<button onclick="closePreins()" style="border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px">Fermer ✕</button></div>'
+    + '<div style="padding:10px 16px;border-bottom:1px solid #EFE8D8;background:#FBF7EC;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+    +   '<span style="font-size:12px;color:#7B0000;font-weight:800">💰 Cotisations annuelles (licence incluse)</span>'
+    +   '<button onclick="togglePreinsTarifs()" style="border:1.5px solid var(--gold,#C9A84C);background:#fff;color:#7B0000;border-radius:7px;padding:5px 11px;font-weight:800;font-size:11.5px;cursor:pointer">✎ Modifier</button>'
+    + '</div>'
+    + '<div id="preins-tarifs" style="display:none;padding:10px 16px;border-bottom:1px solid #EFE8D8;background:#FFFEF9"></div>'
     + '<div id="preins-list" style="overflow-y:auto;padding:14px 16px;flex:1"><div style="color:#888;font-size:13px;padding:20px;text-align:center">⏳ Chargement…</div></div>'
     + '</div>';
   document.body.appendChild(ov);
+  chargerTarifs();
   chargerPreins();
 }
 function closePreins(){ var o = document.getElementById('preins-ov'); if (o) o.remove(); }
@@ -2744,7 +2791,11 @@ function integrerPreins(id){
     fields.tel = x.tel || '';
     fields.email = x.email || '';
     fields.ceinture = 'Blanche';
-    fields['notes-internes'] = 'Pré-inscription en ligne du ' + (x.ts ? new Date(x.ts).toLocaleDateString('fr-FR') : '') + (x.compet ? ' — Compétition souhaitée : ' + x.compet : '') + ' — certificat médical à fournir';
+    var _tarif = (_tarifs && _tarifs[gid] !== undefined && _tarifs[gid] !== null) ? _tarifs[gid] : null;
+    fields['notes-internes'] = 'Pré-inscription en ligne du ' + (x.ts ? new Date(x.ts).toLocaleDateString('fr-FR') : '')
+      + (x.compet ? ' — Compétition souhaitée : ' + x.compet : '')
+      + (_tarif !== null ? ' — Cotisation ' + (PREINS_GROUPES[gid] || gid) + ' : ' + _tarif + ' € (licence incluse) à encaisser' : ' — Cotisation annuelle à encaisser')
+      + ' — certificat médical à fournir';
     var payload = { fields: fields, att: [], tech: {}, phys: {}, gres: {}, comp: [], carnet: [], accessCode: code };
     var sid = 'pre' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     db.collection(GROUPS[gid].col).doc(sid).set({
