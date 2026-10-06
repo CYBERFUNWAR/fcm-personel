@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Pré-inscription — Club FCM · Full Contact Maximois</title>
+<style>
+  :root{ --red:#7B0000; --gold:#C9A84C; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; background:#2B2B2B; min-height:100vh;
+        display:flex; align-items:flex-start; justify-content:center; padding:18px 12px 40px; }
+  .card{ background:#FFFDF8; border-radius:16px; max-width:560px; width:100%; overflow:hidden;
+         box-shadow:0 22px 70px rgba(0,0,0,.55); }
+  .head{ background:var(--red); color:#fff; padding:22px 22px 18px; text-align:center; }
+  .head .tag{ color:var(--gold); font-size:11px; font-weight:800; letter-spacing:2px; }
+  .head h1{ font-size:24px; font-weight:900; letter-spacing:.5px; margin-top:4px; }
+  .head p{ color:rgba(255,255,255,.75); font-size:13px; margin-top:5px; }
+  .gold{ height:4px; background:var(--gold); }
+  form{ padding:20px 20px 24px; }
+  label{ display:block; font-size:11.5px; font-weight:800; color:var(--red); text-transform:uppercase;
+         letter-spacing:.5px; margin:14px 0 5px; }
+  input,select{ width:100%; border:1.5px solid #CCC; border-radius:9px; padding:13px 14px; font-size:17px;
+                background:#fff; outline:none; }
+  input:focus,select:focus{ border-color:var(--gold); }
+  .row{ display:flex; gap:10px; } .row>div{ flex:1; }
+  .hint{ font-size:11.5px; color:#888; margin-top:4px; line-height:1.45; }
+  .consent{ display:flex; gap:10px; align-items:flex-start; margin:18px 0 4px; font-size:12.5px; color:#555; line-height:1.5; }
+  .consent input{ width:22px; height:22px; margin-top:1px; flex:none; }
+  button{ width:100%; margin-top:18px; padding:16px; border:none; border-radius:10px; background:var(--gold);
+          color:var(--red); font-size:18px; font-weight:900; letter-spacing:.5px; cursor:pointer; }
+  button:disabled{ opacity:.55; cursor:wait; }
+  .ok{ padding:34px 24px; text-align:center; display:none; }
+  .ok .big{ font-size:52px; } .ok h2{ color:#1A7E2E; font-size:21px; margin:10px 0 8px; }
+  .ok p{ font-size:14px; color:#555; line-height:1.6; }
+  .err{ display:none; margin-top:12px; background:#FDECEA; color:#B3261E; border-radius:9px; padding:11px 13px; font-size:13px; }
+  .foot{ text-align:center; font-size:10.5px; color:#999; padding:0 18px 18px; }
+  .hp{ position:absolute; left:-5000px; top:-5000px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="head">
+    <div class="tag">FULL CONTACT MAXIMOIS · SAISON 2026-2027</div>
+    <h1>PRÉ-INSCRIPTION</h1>
+    <p>Salle de boxe François Fontarosa — Sainte-Maxime</p>
+  </div>
+  <div class="gold"></div>
+
+  <form id="f" novalidate>
+    <label>Groupe souhaité *</label>
+    <select id="groupe" required>
+      <option value="enfants">Enfants</option>
+      <option value="ados">Adolescents</option>
+      <option value="adultes">Adultes Loisirs</option>
+      <option value="seniors">Seniors</option>
+      <option value="aerokick">Aérokick</option>
+    </select>
+
+    <div class="row">
+      <div><label>Nom *</label><input id="nom" required autocomplete="family-name"></div>
+      <div><label>Prénom *</label><input id="prenom" required autocomplete="given-name"></div>
+    </div>
+
+    <label>Date de naissance *</label>
+    <input id="ddn" type="date" required>
+
+    <label>Adresse postale</label>
+    <input id="adresse" placeholder="N°, rue, code postal, ville" autocomplete="street-address">
+
+    <div class="row">
+      <div><label>Téléphone *</label><input id="tel" type="tel" required placeholder="06 00 00 00 00" autocomplete="tel"></div>
+      <div><label>Email</label><input id="email" type="email" placeholder="exemple@mail.fr" autocomplete="email"></div>
+    </div>
+
+    <label>Parent / tuteur / personne à prévenir *</label>
+    <input id="parent" required placeholder="Nom de la personne à contacter en cas d'urgence">
+    <label>Téléphone de cette personne *</label>
+    <input id="parentTel" type="tel" required placeholder="06 00 00 00 00">
+
+    <label>Compétition envisagée ?</label>
+    <select id="compet">
+      <option value="">— À décider plus tard —</option>
+      <option value="OUI">Oui</option>
+      <option value="NON">Non, loisir uniquement</option>
+    </select>
+
+    <input class="hp" id="website" tabindex="-1" autocomplete="off">
+
+    <div class="consent">
+      <input type="checkbox" id="consent" required>
+      <span>J'accepte que ces informations soient transmises au Club FCM pour la gestion de l'inscription
+      et le suivi sportif de l'adhérent. Elles ne sont jamais communiquées à des tiers.</span>
+    </div>
+
+    <button id="btn" type="submit">📨 ENVOYER MA PRÉ-INSCRIPTION</button>
+    <div class="err" id="err"></div>
+    <p class="hint" style="margin-top:12px">* champs obligatoires. Le <b>certificat médical</b> signé reste à
+    apporter au club — votre pré-inscription sera finalisée sur place, et votre <b>code d'accès famille</b>
+    (suivi en ligne de la progression) vous sera remis par les enseignants.</p>
+  </form>
+
+  <div class="ok" id="ok">
+    <div class="big">🥊</div>
+    <h2>Pré-inscription envoyée !</h2>
+    <p>Merci ! Le club a bien reçu votre demande.<br><br>
+    <b>Prochaine étape :</b> venez au premier cours avec le <b>certificat médical signé</b>
+    (mention compétition si souhaitée). Les enseignants finaliseront l'inscription et vous remettront
+    votre code d'accès famille.</p>
+  </div>
+
+  <div class="foot">Julien Boulet · Cyberfun © 2026 — Tous droits réservés</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+var FB_CFG = {
+  apiKey:      "AIzaSyDrASw_iU1DW6G24M7yxKZigeREYa5zOwk",
+  authDomain:  "fcm-full-contact.firebaseapp.com",
+  projectId:   "fcm-full-contact",
+  storageBucket:"fcm-full-contact.firebasestorage.app",
+  messagingSenderId:"869806093128",
+  appId:       "1:869806093128:web:401ff1e388fd0bc583397d"
+};
+var app = null, db = null, auth = null;
+try{
+  app = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(FB_CFG);
+  auth = firebase.auth();
+  db = firebase.firestore();
+}catch(e){}
+
+function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function showErr(m){ var e = document.getElementById('err'); e.textContent = m; e.style.display = 'block'; }
+
+document.getElementById('f').addEventListener('submit', function(ev){
+  ev.preventDefault();
+  document.getElementById('err').style.display = 'none';
+
+  if (val('website')) return; // pot de miel anti-robots : champ invisible rempli = robot
+  var nom = val('nom'), prenom = val('prenom'), ddn = val('ddn'), tel = val('tel'),
+      parent = val('parent'), parentTel = val('parentTel');
+  if (!nom || !prenom || !ddn || !tel || !parent || !parentTel){
+    showErr('Merci de remplir tous les champs marqués d\'une étoile *.'); return;
+  }
+  if (!document.getElementById('consent').checked){
+    showErr('Merci de cocher la case de consentement pour envoyer la demande.'); return;
+  }
+  if (!db || !auth){ showErr('Connexion impossible pour le moment — réessayez dans quelques minutes.'); return; }
+
+  var btn = document.getElementById('btn');
+  btn.disabled = true; btn.textContent = '⏳ Envoi en cours…';
+
+  var done = function(){
+    document.getElementById('f').style.display = 'none';
+    document.getElementById('ok').style.display = 'block';
+    window.scrollTo(0, 0);
+  };
+  var fail = function(e){
+    btn.disabled = false; btn.textContent = '📨 ENVOYER MA PRÉ-INSCRIPTION';
+    showErr('Envoi impossible (' + ((e && e.code) || e) + '). Vérifiez votre connexion et réessayez.');
+  };
+
+  var envoyer = function(){
+    db.collection('preinscriptions').add({
+      groupe: val('groupe'),
+      nom: nom, prenom: prenom, ddn: ddn,
+      adresse: val('adresse'),
+      tel: tel, email: val('email'),
+      parent: parent, parentTel: parentTel,
+      compet: val('compet'),
+      ts: Date.now(),
+      traite: false
+    }).then(done).catch(fail);
+  };
+
+  if (auth.currentUser) envoyer();
+  else auth.signInAnonymously().then(envoyer).catch(fail);
+});
+</script>
+</body>
+</html>

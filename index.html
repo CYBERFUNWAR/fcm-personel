@@ -894,10 +894,14 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
     <div class="fg"><label>Catégorie compét.</label><input id="categorie" type="text" placeholder="ex: -60kg Cadets"></div>
   </div>
 
-  <div class="fgrid" style="grid-template-columns:2fr 1.2fr 1.5fr">
-    <div class="fg"><label>Nom du parent / tuteur</label><input id="parent" type="text" placeholder="—"></div>
+  <div class="fgrid" style="grid-template-columns:2fr 1.2fr">
+    <div class="fg"><label>Parent / tuteur / personne à prévenir</label><input id="parent" type="text" placeholder="—"></div>
+    <div class="fg"><label>Tél. de cette personne</label><input id="parent-tel" type="tel" placeholder="06 00 00 00 00"></div>
+  </div>
+  <div class="fgrid" style="grid-template-columns:1.2fr 1.6fr 2.2fr">
     <div class="fg"><label>Téléphone</label><input id="tel" type="tel" placeholder="06 00 00 00 00"></div>
     <div class="fg"><label>Email</label><input id="email" type="email" placeholder="—"></div>
+    <div class="fg"><label>Adresse postale</label><input id="adresse" type="text" placeholder="N°, rue, code postal, ville"></div>
   </div>
   <div class="fgrid">
     <div class="fg"><label>Objectifs personnels pour la saison <span class="cfg-saison">2026-2027</span></label><textarea id="objectifs" placeholder="Ex: Obtenir la ceinture bleue, participer à 2 tournois…" rows="3"></textarea></div>
@@ -1070,7 +1074,8 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
     <button class="btn bgh admin-only" onclick="exportJSON()">📤 JSON</button>
     <button class="btn bgh admin-only" onclick="document.getElementById('imp').click()">📥 Importer</button>
     <button class="btn bgh admin-only" onclick="openJournal()" title="Journal des séances validées : dates, signatures, présents, notes, décrochages">📖 Journal</button>
-    <button class="btn bgh admin-only" onclick="openBackup()" title="Exporter ou restaurer toutes les fiches du groupe en un fichier (archivage)">🗄 Archive groupe</button>
+    <button class="btn bgh admin-only" onclick="openPreins()" title="Demandes de pré-inscription envoyées en ligne par les familles">📥 Pré-inscriptions</button>
+<button class="btn bgh admin-only" onclick="openBackup()" title="Exporter ou restaurer toutes les fiches du groupe en un fichier (archivage)">🗄 Archive groupe</button>
     <button class="btn bgh" id="btn-contacts" onclick="openContacts()" style="display:none">📇 Contacts</button>
     <input type="file" id="imp" accept=".json" style="display:none" onchange="loadJSONFile(event)">
   </div>
@@ -1269,7 +1274,7 @@ const PHYS=[
   {id:'luc',    label:'Luc-Léger',   unit:'niveau', lower:false},
 ];
 
-const SIDS=['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','tel','email','objectifs','notes-internes','adh-statut','adh-montant','adh-certif',
+const SIDS=['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','parent-tel','tel','email','adresse','objectifs','notes-internes','adh-statut','adh-montant','adh-certif',
   'g1d','g1g','g1o','g2d','g2g','g2o','g3d','g3g','g3o','grade-final','date-cloture',
   'b-forts','b-axes','b-attitude','b-reco','b-libre'];
 
@@ -2591,7 +2596,7 @@ function closeBackup(){ var o = document.getElementById('backup-ov'); if (o) o.r
 var _saison = { archiveOk: false, enCours: false };
 
 // Champs d'identité CONSERVÉS lors de la bascule ; tout le reste est remis à zéro.
-var SAISON_CHAMPS_CONSERVES = ['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','tel','email','notes-internes'];
+var SAISON_CHAMPS_CONSERVES = ['nom','prenom','ddn','ceinture','licence','poids','categorie','parent','parent-tel','tel','email','adresse','notes-internes'];
 
 function openSaison(){
   if (typeof isAdmin === 'function' && !isAdmin()){ toast('🔒 Réservé à l\'administrateur.'); return; }
@@ -2629,6 +2634,132 @@ function openSaison(){
   document.body.appendChild(ov);
 }
 function closeSaison(){ if (_saison.enCours){ toast('⏳ Opération en cours — patientez.'); return; } var o = document.getElementById('saison-ov'); if (o) o.remove(); }
+
+// ══════════════════════════════════════════════════════════════════
+//  PRÉ-INSCRIPTIONS EN LIGNE — les familles remplissent inscription.html,
+//  l'administrateur intègre chaque demande en un clic.
+// ══════════════════════════════════════════════════════════════════
+var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes Loisirs', seniors:'Seniors', aerokick:'Aérokick' };
+
+function _codesExistants(){
+  var set = {};
+  Object.keys(GROUPS).forEach(function(g){
+    try{
+      var l = JSON.parse(localStorage.getItem(CLUB.prefixe+'_sl_'+CLUB.saisonCle+'_'+g) || '[]');
+      l.forEach(function(s){ if (s.accessCode) set[s.accessCode] = 1; });
+    }catch(e){}
+  });
+  return set;
+}
+function _genCodeFamille(){
+  var A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', used = _codesExistants(), c;
+  do { c = ''; for (var i = 0; i < 4; i++) c += A.charAt(Math.floor(Math.random() * A.length)); } while (used[c]);
+  return c;
+}
+
+function openPreins(){
+  if (typeof isAdmin === 'function' && !isAdmin()){ toast('🔒 Réservé à l\'administrateur.'); return; }
+  if (!db){ toast('⚠️ Connexion Firebase requise.'); return; }
+  var ov = document.createElement('div');
+  ov.id = 'preins-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px';
+  ov.innerHTML = '<div style="background:#FFFDF8;border-radius:16px;max-width:680px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.6)">'
+    + '<div style="background:var(--red,#7B0000);color:#fff;padding:13px 18px;font-weight:900;font-size:16px;display:flex;justify-content:space-between;align-items:center">📥 Pré-inscriptions en ligne'
+    + '<button onclick="closePreins()" style="border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px">Fermer ✕</button></div>'
+    + '<div id="preins-list" style="overflow-y:auto;padding:14px 16px;flex:1"><div style="color:#888;font-size:13px;padding:20px;text-align:center">⏳ Chargement…</div></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  chargerPreins();
+}
+function closePreins(){ var o = document.getElementById('preins-ov'); if (o) o.remove(); }
+
+function chargerPreins(){
+  var box = document.getElementById('preins-list');
+  if (!box) return;
+  db.collection('preinscriptions').get().then(function(snap){
+    var items = [];
+    snap.forEach(function(d){ var x = d.data(); if (!x.traite) items.push({ id: d.id, x: x }); });
+    items.sort(function(a, b){ return (a.x.ts || 0) - (b.x.ts || 0); });
+    if (!items.length){
+      box.innerHTML = '<div style="color:#888;font-size:13px;padding:24px;text-align:center">Aucune demande en attente.<br><span style="font-size:11.5px">Les familles s\'inscrivent via la page inscription.html (QR code).</span></div>';
+      return;
+    }
+    box.innerHTML = items.map(function(it){
+      var x = it.x;
+      var dte = x.ts ? new Date(x.ts).toLocaleDateString('fr-FR') : '';
+      var opts = Object.keys(PREINS_GROUPES).map(function(g){
+        return '<option value="' + g + '"' + (g === x.groupe ? ' selected' : '') + '>' + PREINS_GROUPES[g] + '</option>';
+      }).join('');
+      var esc = function(v){ return String(v || '').replace(/</g, '&lt;'); };
+      return '<div style="border:1.5px solid #E2DCCB;border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff" id="pre-' + it.id + '">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'
+        +   '<div style="font-weight:900;font-size:14.5px;color:#7B0000">' + esc(x.prenom) + ' ' + esc(x.nom).toUpperCase() + ' <span style="font-weight:600;color:#999;font-size:11px">· ' + dte + '</span></div>'
+        +   '<select id="preg-' + it.id + '" style="border:1.5px solid #CCC;border-radius:7px;padding:5px 8px;font-size:12px">' + opts + '</select>'
+        + '</div>'
+        + '<div style="font-size:12px;color:#555;line-height:1.6;margin:7px 0 9px">'
+        +   'Né(e) le ' + esc(x.ddn) + ' · 📞 ' + esc(x.tel) + (x.email ? ' · ✉ ' + esc(x.email) : '') + '<br>'
+        +   (x.adresse ? '🏠 ' + esc(x.adresse) + '<br>' : '')
+        +   '🚨 ' + esc(x.parent) + (x.parentTel ? ' · ' + esc(x.parentTel) : '')
+        +   (x.compet ? ' — Compétition : ' + esc(x.compet) : '')
+        + '</div>'
+        + '<div style="display:flex;gap:8px">'
+        +   '<button onclick="integrerPreins(\'' + it.id + '\')" style="flex:1;border:none;background:#1A7E2E;color:#fff;border-radius:8px;padding:9px;font-weight:800;font-size:12.5px;cursor:pointer">✓ Intégrer dans le groupe</button>'
+        +   '<button onclick="refuserPreins(\'' + it.id + '\')" style="border:1.5px solid #C33;background:#fff;color:#C33;border-radius:8px;padding:9px 13px;font-weight:800;font-size:12.5px;cursor:pointer">🗑</button>'
+        + '</div></div>';
+    }).join('');
+  }).catch(function(e){
+    box.innerHTML = '<div style="color:#C33;font-size:13px;padding:20px;text-align:center">❌ Lecture impossible : ' + ((e && e.code) || e) + '<br><span style="font-size:11px;color:#888">Les règles Firestore v2 (pré-inscriptions) sont-elles publiées ?</span></div>';
+  });
+}
+
+function refuserPreins(id){
+  if (!confirm('Supprimer définitivement cette demande ?')) return;
+  db.collection('preinscriptions').doc(id).delete().then(function(){
+    var el = document.getElementById('pre-' + id); if (el) el.remove();
+    toast('🗑 Demande supprimée.');
+  }).catch(function(e){ toast('❌ ' + ((e && e.code) || e)); });
+}
+
+function integrerPreins(id){
+  var sel = document.getElementById('preg-' + id);
+  var gid = sel ? sel.value : 'enfants';
+  if (!GROUPS[gid]){ toast('Groupe inconnu.'); return; }
+  db.collection('preinscriptions').doc(id).get().then(function(snap){
+    if (!snap.exists){ toast('Demande introuvable.'); return; }
+    var x = snap.data();
+    var norm = function(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[^a-z]/g, ''); };
+    var lst = [];
+    try{ lst = JSON.parse(localStorage.getItem(CLUB.prefixe+'_sl_'+CLUB.saisonCle+'_'+gid) || '[]'); }catch(e){}
+    var dup = lst.some(function(s){ return norm(s.nom) === norm(x.nom) && norm(s.prenom) === norm(x.prenom); });
+    if (dup && !confirm('⚠️ ' + x.prenom + ' ' + x.nom + ' semble déjà exister dans ce groupe.\n\nCréer quand même une nouvelle fiche ?')) return;
+
+    var code = _genCodeFamille();
+    var fields = {}; SIDS.forEach(function(k){ fields[k] = ''; });
+    fields.nom = String(x.nom || '').toUpperCase();
+    fields.prenom = x.prenom || '';
+    fields.ddn = x.ddn || '';
+    fields.adresse = x.adresse || '';
+    fields.parent = x.parent || '';
+    fields['parent-tel'] = x.parentTel || '';
+    fields.tel = x.tel || '';
+    fields.email = x.email || '';
+    fields.ceinture = 'Blanche';
+    fields['notes-internes'] = 'Pré-inscription en ligne du ' + (x.ts ? new Date(x.ts).toLocaleDateString('fr-FR') : '') + (x.compet ? ' — Compétition souhaitée : ' + x.compet : '') + ' — certificat médical à fournir';
+    var payload = { fields: fields, att: [], tech: {}, phys: {}, gres: {}, comp: [], carnet: [], accessCode: code };
+    var sid = 'pre' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    db.collection(GROUPS[gid].col).doc(sid).set({
+      meta: { nom: fields.nom, prenom: fields.prenom, ceinture: 'Blanche', accessCode: code },
+      payload: JSON.stringify(payload),
+      famille: { objectifs: '', carnet: [] }
+    }).then(function(){
+      return db.collection('preinscriptions').doc(id).update({ traite: true, integreLe: Date.now(), groupeFinal: gid });
+    }).then(function(){
+      var el = document.getElementById('pre-' + id); if (el) el.remove();
+      toast('✅ ' + fields.prenom + ' ' + fields.nom + ' intégré(e) dans « ' + (PREINS_GROUPES[gid] || gid) + ' ».\n🔑 Code famille : ' + code);
+    }).catch(function(e){ toast('❌ Intégration impossible : ' + ((e && e.code) || e)); });
+  });
+}
+
 
 function saisonArchive(){
   if (!db) return;
