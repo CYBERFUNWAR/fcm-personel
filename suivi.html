@@ -3281,6 +3281,9 @@ function _carnetNonLus(id){
     var fam = JSON.parse(localStorage.getItem(KS(id) + '_fam') || '{}');
     var n = Array.isArray(fam.carnet) ? fam.carnet.length : 0;
     var vu = parseInt(localStorage.getItem(_carnetVuKey(id)) || '0', 10) || 0;
+    // Auto-correction : un « vu » supérieur au réel (vestige d'essais ou
+    // d'une entrée disparue) se réaligne, sinon la pastille resterait muette.
+    if (vu > n){ vu = n; try{ localStorage.setItem(_carnetVuKey(id), String(n)); }catch(e){} }
     return Math.max(0, n - vu);
   }catch(e){ return 0; }
 }
