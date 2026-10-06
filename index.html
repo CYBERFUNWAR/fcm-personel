@@ -1085,7 +1085,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
     <button class="btn bgh admin-only" onclick="exportJSON()">📤 JSON</button>
     <button class="btn bgh admin-only" onclick="document.getElementById('imp').click()">📥 Importer</button>
     <button class="btn bgh admin-only" onclick="openJournal()" title="Journal des séances validées : dates, signatures, présents, notes, décrochages">📖 Journal</button>
-    <button class="btn bgh admin-only" onclick="openPreins()" title="Demandes de pré-inscription envoyées en ligne par les familles">📥 Pré-inscriptions</button>
+    <button class="btn bgh admin-only" onclick="openPreins()" style="position:relative" title="Demandes de pré-inscription envoyées en ligne par les familles">📥 Pré-inscriptions<span id="preins-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#D32F2F;color:#fff;font-size:11.5px;font-weight:900;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1">0</span></button>
 <button class="btn bgh admin-only" onclick="openBackup()" title="Exporter ou restaurer toutes les fiches du groupe en un fichier (archivage)">🗄 Archive groupe</button>
     <button class="btn bgh" id="btn-contacts" onclick="openContacts()" style="display:none">📇 Contacts</button>
     <input type="file" id="imp" accept=".json" style="display:none" onchange="loadJSONFile(event)">
@@ -1349,6 +1349,7 @@ function switchGroup(gid){
       startRealtimeSync();
       syncSeancesJournal();
       setTimeout(function(){ try{ prefetchPhotosGroupe(); }catch(e){} }, 2500);
+      if (typeof isAdmin === 'function' && isAdmin()) setTimeout(function(){ try{ startPreinsWatch(); }catch(e){} }, 1500);
     };
     if(window._fbAuth){
       if(window._fbAuth.currentUser){ window._demarrerSyncs(); }
@@ -2672,6 +2673,22 @@ var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes L
 // Tarifs annuels par section — stockés dans Firestore (config/tarifs),
 // modifiables en Admin : les prix peuvent changer chaque saison sans toucher au code.
 var _tarifs = null;
+
+// Badge de notification : nombre de pré-inscriptions en attente, en temps réel.
+var _preinsUnsub = null;
+function startPreinsWatch(){
+  if (!db || _preinsUnsub) return;
+  try{
+    _preinsUnsub = db.collection('preinscriptions').onSnapshot(function(snap){
+      var n = 0;
+      snap.forEach(function(d){ var x = d.data(); if (x && !x.traite) n++; });
+      var b = document.getElementById('preins-badge');
+      if (b){ b.textContent = n > 99 ? '99+' : String(n); b.style.display = n ? 'inline-flex' : 'none'; }
+      // Fenêtre ouverte pendant qu'une demande arrive ou se traite : liste rafraîchie en direct
+      if (document.getElementById('preins-list')) chargerPreins();
+    }, function(){});
+  }catch(e){}
+}
 function chargerTarifs(cb){
   if (!db){ if (cb) cb(); return; }
   db.collection('config').doc('tarifs').get().then(function(snap){
@@ -2795,6 +2812,56 @@ function refuserPreins(id){
   }).catch(function(e){ toast('❌ ' + ((e && e.code) || e)); });
 }
 
+// Fenêtre après intégration : code en grand + message de bienvenue prêt à partir
+function _preinsBienvenue(fields, gid, code){
+  var suj = 'Bienvenue au Club FCM — votre accès famille';
+  var cor = 'Bonjour,\n\n'
+    + 'La pré-inscription de ' + fields.prenom + ' ' + fields.nom + ' (' + (PREINS_GROUPES[gid] || gid) + ') est validée — bienvenue au Club FCM !\n\n'
+    + 'VOTRE ACCÈS FAMILLE — suivi de la progression en ligne :\n'
+    + '• Page : https://cyberfunwar.github.io/fcm-personel/suivi.html\n'
+    + '• Profil « Élève / Famille », puis connectez-vous avec :\n'
+    + '   - Adresse e-mail : ' + (fields.email || '(e-mail à compléter)') + '\n'
+    + '   - Code personnel : ' + code + '\n\n'
+    + 'Vous y retrouverez l\'assiduité, la progression, les objectifs et le carnet de liaison.\n\n'
+    + 'Pour finaliser l\'inscription, pensez au certificat médical signé et au règlement de la cotisation (chèque ou espèces).\n\n'
+    + 'À très vite sur le tatami !\nClub FCM — Full Contact Maximois';
+  var ov = document.createElement('div');
+  ov.id = 'preins-mail-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100000;display:flex;align-items:center;justify-content:center;padding:14px';
+  var esc = function(v){ return String(v || '').replace(/</g, '&lt;'); };
+  ov.innerHTML = '<div style="background:#FFFDF8;border-radius:16px;max-width:560px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.6)">'
+    + '<div style="background:#1A7E2E;color:#fff;padding:13px 18px;font-weight:900;font-size:15.5px">✅ ' + esc(fields.prenom) + ' ' + esc(fields.nom) + ' — fiche créée</div>'
+    + '<div style="padding:16px 18px;overflow-y:auto">'
+    +   '<div style="text-align:center;margin-bottom:12px"><div style="font-size:11.5px;color:#888;text-transform:uppercase;letter-spacing:1px">Code d\'accès famille</div>'
+    +   '<div style="font-size:44px;font-weight:900;color:#7B0000;letter-spacing:8px">' + esc(code) + '</div></div>'
+    +   '<textarea id="preins-mail-txt" readonly style="width:100%;height:170px;border:1.5px solid #DDD;border-radius:9px;padding:10px;font-size:12px;line-height:1.5;color:#444;box-sizing:border-box;resize:none"></textarea>'
+    +   '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+    +     '<button onclick="_preinsCopier()" style="flex:1;min-width:150px;border:none;background:#7B0000;color:#fff;border-radius:9px;padding:12px;font-weight:800;font-size:13px;cursor:pointer">📋 Copier le message</button>'
+    +     (fields.email ? '<button onclick="_preinsMailto()" style="flex:1;min-width:150px;border:1.5px solid #7B0000;background:#fff;color:#7B0000;border-radius:9px;padding:12px;font-weight:800;font-size:13px;cursor:pointer">✉ Ouvrir la messagerie</button>' : '')
+    +   '</div>'
+    +   '<div style="font-size:11px;color:#999;margin-top:8px;text-align:center">Copiez le message dans Gmail, WhatsApp ou SMS' + (fields.email ? ' — destinataire : ' + esc(fields.email) : ' (aucun e-mail saisi par la famille)') + '</div>'
+    + '</div>'
+    + '<div style="padding:0 18px 16px"><button onclick="document.getElementById(\'preins-mail-ov\').remove()" style="width:100%;border:1.5px solid #CCC;background:#fff;color:#666;border-radius:9px;padding:10px;font-weight:700;font-size:12.5px;cursor:pointer">Fermer</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  var ta = document.getElementById('preins-mail-txt');
+  if (ta) ta.value = 'Objet : ' + suj + '\n\n' + cor;
+  window._preinsMailData = { to: fields.email || '', suj: suj, cor: cor };
+}
+function _preinsCopier(){
+  var ta = document.getElementById('preins-mail-txt');
+  if (!ta) return;
+  ta.focus(); ta.select();
+  var ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){}
+  if (!ok && navigator.clipboard){ navigator.clipboard.writeText(ta.value).then(function(){ toast('📋 Message copié !'); }).catch(function(){}); return; }
+  toast(ok ? '📋 Message copié — collez-le dans Gmail, WhatsApp ou SMS.' : '⚠️ Sélectionnez le texte et copiez-le manuellement (Ctrl+C).');
+}
+function _preinsMailto(){
+  var d = window._preinsMailData || {};
+  if (!d.to) return;
+  location.href = 'mailto:' + encodeURIComponent(d.to) + '?subject=' + encodeURIComponent(d.suj) + '&body=' + encodeURIComponent(d.cor);
+}
 function integrerPreins(id){
   var sel = document.getElementById('preg-' + id);
   var gid = sel ? sel.value : 'enfants';
@@ -2835,23 +2902,8 @@ function integrerPreins(id){
     }).then(function(){
       var el = document.getElementById('pre-' + id); if (el) el.remove();
       toast('✅ ' + fields.prenom + ' ' + fields.nom + ' intégré(e) dans « ' + (PREINS_GROUPES[gid] || gid) + ' ».\n🔑 Code famille : ' + code);
-      // E-mail de bienvenue pré-rédigé : il ne reste qu'à appuyer sur Envoyer.
-      if (fields.email){
-        var _suj = 'Bienvenue au Club FCM — votre accès famille';
-        var _cor = 'Bonjour,\n\n'
-          + 'La pré-inscription de ' + fields.prenom + ' ' + fields.nom + ' (' + (PREINS_GROUPES[gid] || gid) + ') est validée — bienvenue au Club FCM !\n\n'
-          + 'VOTRE ACCÈS FAMILLE — suivi de la progression en ligne :\n'
-          + '• Page : https://cyberfunwar.github.io/fcm-personel/suivi.html\n'
-          + '• Profil « Élève / Famille », puis connectez-vous avec :\n'
-          + '   - Adresse e-mail : ' + fields.email + '\n'
-          + '   - Code personnel : ' + code + '\n\n'
-          + 'Vous y retrouverez l\'assiduité, la progression, les objectifs et le carnet de liaison.\n\n'
-          + 'Pour finaliser l\'inscription, pensez au certificat médical signé et au règlement de la cotisation (chèque ou espèces).\n\n'
-          + 'À très vite sur le tatami !\nClub FCM — Full Contact Maximois';
-        setTimeout(function(){
-          location.href = 'mailto:' + encodeURIComponent(fields.email) + '?subject=' + encodeURIComponent(_suj) + '&body=' + encodeURIComponent(_cor);
-        }, 600);
-      }
+      // Fenêtre de remise du code : message de bienvenue à copier ou à envoyer.
+      _preinsBienvenue(fields, gid, code);
     }).catch(function(e){ toast('❌ Intégration impossible : ' + ((e && e.code) || e)); });
   });
 }
