@@ -2447,7 +2447,7 @@ function validerAppel(){
     if (!Array.isArray(base.att)) base.att = [];
     while (base.att.length < _appel.total) base.att.push(0);
     base.att[idx] = _appel.present[s.id] ? 1 : -1;
-    localStorage.setItem(KS(s.id), JSON.stringify(base));
+    try{ localStorage.setItem(KS(s.id), JSON.stringify(base)); }catch(e){}
     // fiche actuellement ouverte : rafraîchir l'assiduité à l'écran
     if (s.id === curId){
       try{ att = base.att.slice(); if (typeof refreshAtt === 'function') refreshAtt(); }catch(e){}
