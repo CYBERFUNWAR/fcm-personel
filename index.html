@@ -1790,6 +1790,17 @@ async function syncListFromFirebase(){
 function switchTab(i){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id==='tab-'+i));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+i));
+  // L'onglet affiché contient le carnet → messages de cet élève lus
+  try{
+    var _cb = document.getElementById('carnet-liste');
+    if (_cb && typeof isViewer === 'function' && !isViewer() && curId){
+      var _pan = _cb.closest ? _cb.closest('.panel') : null;
+      if (_pan && _pan.classList.contains('active')){
+        _carnetMarquerLu(curId);
+        renderSlist();
+      }
+    }
+  }catch(e){}
 }
 
 // ══════════════════════════════════
@@ -3250,10 +3261,14 @@ function renderCarnet(){
       + '</div>';
   }
   box.innerHTML = h;
-  // Côté club : afficher le carnet de l'élève vaut lecture de ses messages
+  // Côté club : les messages ne sont « lus » que si l'onglet carnet est
+  // réellement affiché (pas au simple chargement de la fiche en arrière-plan).
   if (typeof isViewer === 'function' && !isViewer() && curId){
-    _carnetMarquerLu(curId);
-    try{ renderSlist(); }catch(e){}
+    var _pan = box.closest ? box.closest('.panel') : null;
+    if (!_pan || _pan.classList.contains('active')){
+      _carnetMarquerLu(curId);
+      try{ renderSlist(); }catch(e){}
+    }
   }
 }
 
