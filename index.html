@@ -805,7 +805,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
     </div>
   </div>
   <div class="tn-center">
-    <button class="sw-btn" onclick="openModal()">👤 <span id="cur-display">Sélectionner un élève</span> ▾</button>
+    <button class="sw-btn" onclick="openModal()" style="position:relative">👤 <span id="cur-display">Sélectionner un élève</span> ▾<span id="carnet-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#E8900C;color:#fff;font-size:11.5px;font-weight:900;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1">0</span></button>
     <div class="fb-status" title="Statut de la connexion Firebase" style="cursor:default">
       <div class="fb-dot" id="fb-dot"></div>
       <span id="fb-label">Non connecté</span>
@@ -3250,9 +3250,33 @@ function renderCarnet(){
       + '</div>';
   }
   box.innerHTML = h;
+  // Côté club : afficher le carnet de l'élève vaut lecture de ses messages
+  if (typeof isViewer === 'function' && !isViewer() && curId){
+    _carnetMarquerLu(curId);
+    try{ renderSlist(); }catch(e){}
+  }
 }
 
 // ── Écriture élève : lecture-modification-écriture ciblée du document Firestore ──
+// ── Messages du carnet non lus (écrits par les familles) ──
+// Lecture des miroirs famille (synchro temps réel) ; « vu » mémorisé par appareil.
+function _carnetVuKey(id){ return CLUB.prefixe + '_cvu_' + CLUB.saisonCle + '_' + id; }
+function _carnetNonLus(id){
+  try{
+    var fam = JSON.parse(localStorage.getItem(KS(id) + '_fam') || '{}');
+    var n = Array.isArray(fam.carnet) ? fam.carnet.length : 0;
+    var vu = parseInt(localStorage.getItem(_carnetVuKey(id)) || '0', 10) || 0;
+    return Math.max(0, n - vu);
+  }catch(e){ return 0; }
+}
+function _carnetMarquerLu(id){
+  try{
+    var fam = JSON.parse(localStorage.getItem(KS(id) + '_fam') || '{}');
+    var n = Array.isArray(fam.carnet) ? fam.carnet.length : 0;
+    localStorage.setItem(_carnetVuKey(id), String(n));
+  }catch(e){}
+}
+
 function _patchFicheEleve(mutator, onDone){
   if (!db || !curId){ toast('⚠️ Connexion requise pour enregistrer.'); return; }
   var ref = db.collection(GROUPS[curGroup].col).doc(curId);
@@ -3761,6 +3785,8 @@ function renderSlist(){
     const ic=s.id===curId;
     const st=studentStats(s.id);
     const pctBadge=st.pct!==null?`<span style="font-size:10px;color:${st.pct>=70?'#27ae60':st.pct>=50?'#f39c12':'#e74c3c'};font-weight:700;margin-left:6px">${st.pct}% assiduité</span>`:'';
+    const nbCar=(typeof isViewer==='function'&&isViewer())?0:_carnetNonLus(s.id);
+    const carBadge=nbCar?`<span title="${nbCar} message(s) non lu(s) dans le carnet de correspondance" style="font-size:10px;background:#E8900C;color:#fff;font-weight:800;border-radius:9px;padding:2px 7px;margin-left:6px;white-space:nowrap">📩 ${nbCar}</span>`:'';
     const cachedPhoto = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     const thumb = cachedPhoto
       ?`<img src="${cachedPhoto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0">`
@@ -3769,7 +3795,7 @@ function renderSlist(){
       ${dragEnabled?'<span class="drag-handle" title="Maintenir pour déplacer">⠿</span>':'<span class="drag-handle" style="opacity:.25" title="Tri actif : repassez en ordre manuel pour déplacer">⠿</span>'}
       ${thumb}
       <div class="sinfo">
-        <div class="sname">${full}${ic?' <span style="color:var(--gold);font-size:10px">● actif</span>':''}${pctBadge}</div>
+        <div class="sname">${full}${ic?' <span style="color:var(--gold);font-size:10px">● actif</span>':''}${pctBadge}${carBadge}</div>
         <div class="ssub">${s.ceinture||'Ceinture non renseignée'}</div>
         ${s.accessCode?`<div class="scode" style="font-size:10px;color:#1f5fa8;margin-top:2px">🔑 Code : <b>${s.accessCode}</b> <button class="copy-code" data-code="${s.accessCode}" style="background:none;border:1px solid #1f5fa8;color:#1f5fa8;border-radius:3px;font-size:9px;padding:0 5px;cursor:pointer;margin-left:4px">copier</button></div>`:''}
       </div>
@@ -3838,6 +3864,15 @@ function renderSlist(){
   });
   // Appliquer les restrictions de rôle sur les boutons de suppression
   applyDeleteRestrictions();
+  // Badge global : total des messages carnet non lus du groupe
+  try{
+    var _tot = 0;
+    if (typeof isViewer !== 'function' || !isViewer()){
+      list.forEach(function(s){ _tot += _carnetNonLus(s.id); });
+    }
+    var _cb = document.getElementById('carnet-badge');
+    if (_cb){ _cb.textContent = _tot > 99 ? '99+' : String(_tot); _cb.style.display = _tot ? 'inline-flex' : 'none'; }
+  }catch(e){}
 }
 
 // ══════════════════════════════════
