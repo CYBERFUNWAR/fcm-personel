@@ -2686,9 +2686,22 @@ function startPreinsWatch(){
       if (b){ b.textContent = n > 99 ? '99+' : String(n); b.style.display = n ? 'inline-flex' : 'none'; }
       // Fenêtre ouverte pendant qu'une demande arrive ou se traite : liste rafraîchie en direct
       if (document.getElementById('preins-list')) chargerPreins();
-    }, function(){});
+    }, function(){
+      // session devenue non autorisée (déconnexion, changement de rôle) : on désarme,
+      // l'auto-armement relancera la veille à la prochaine session admin.
+      try{ if (_preinsUnsub) _preinsUnsub(); }catch(e){}
+      _preinsUnsub = null;
+    });
   }catch(e){}
 }
+// Auto-armement : quelle que soit la chronologie connexion app / connexion Firebase,
+// la veille démarre dès que « session admin + base prête » sont réunis.
+function _preinsAutoArm(){
+  try{
+    if (!_preinsUnsub && db && typeof isAdmin === 'function' && isAdmin()) startPreinsWatch();
+  }catch(e){}
+}
+setInterval(_preinsAutoArm, 3000);
 function chargerTarifs(cb){
   if (!db){ if (cb) cb(); return; }
   db.collection('config').doc('tarifs').get().then(function(snap){
