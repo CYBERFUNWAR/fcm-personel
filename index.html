@@ -911,7 +911,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
   </div>
   <div class="fgrid" style="grid-template-columns:1.2fr 1.6fr 2.2fr">
     <div class="fg"><label>Téléphone</label><input id="tel" type="tel" placeholder="06 00 00 00 00"></div>
-    <div class="fg"><label>Email</label><input id="email" type="email" placeholder="—"></div>
+    <div class="fg"><label>Email</label><input id="email" type="email" placeholder="—"><div id="email-propose" style="display:none"></div></div>
     <div class="fg"><label>Adresse postale</label><input id="adresse" type="text" placeholder="N°, rue, code postal, ville"></div>
   </div>
   <div class="fgrid">
@@ -1120,6 +1120,8 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
         </select>
         <button onclick="openDashboard()" title="Tableau de bord du groupe"
           style="background:var(--red);color:white;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.5px;white-space:nowrap">📊 Tableau de bord</button>
+        <button onclick="openCartes()" title="Imprimer les cartes d'accès famille du groupe (nom + code + QR)"
+          style="background:var(--gold,#C9A84C);color:#5A3E00;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.5px;white-space:nowrap">🖨 Cartes d'accès</button>
       </div>
       <div id="slist-cont"></div>
       <div class="nsf">
@@ -2767,6 +2769,69 @@ function _genCodeFamille(){
   return c;
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+//  CARTES D'ACCÈS FAMILLE — planche imprimable (nom, code, QR) générée
+//  depuis la liste du groupe : toujours à jour, réutilisable chaque saison.
+// ══════════════════════════════════════════════════════════════════
+var QR_SUIVI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIwAAACMCAIAAAAhotZpAAADm0lEQVR4nO2dwXLbMAwF604+O8f+t3tlD5gCA0DSOru3JJbI6A30BiBIv97v9y95Nr/vnoD8H0UCoEgAvs4fvl+v8QH+NDzvnE/1Pp3/5RwrM4ft52YkAVAkAIoE4Cv6w5SXVD9zjpuZQ+Y+1WsjH8r408ZzM5IAKBIARQIQetJJxmOqHhC966t5SXSf6PNVtq/NPDcjCYAiAVAkAClP2qDjT50cpeOdd2EkAVAkAIoE4DZPyuQ3mc9UqeYuT/AnIwmAIgFQJAApT9p4F0+966dqhhs+NPXcjCQAigRAkQCEnrTRS3bS8YZqb8IUd/XgGUkAFAmAIgH4x5Puqk1t18qmcqnO/TsYSQAUCYAiAQj3J02t5WR6Ezq949FYnbpc1Rennk+EkQRAkQAoEoAwT5p6d3e8pLr3qOoNG/50UvX1aCwjCYAiAVAkAK/3wpr/VP1tam1mY87VXsHO8zSSACgSAEUC8IrOu9tYR6nWBjf6IKpUc7LOHKKxjCQAigRAkQC0esGnfKtzXsNd9caTTk9EZo+wkQRAkQAoEoBy7e5kql9u+9orc6ap85D0JBiKBECRAISeVGWqnrZxnwxT/RTW7n4oigRAkQCU15Om6myZazNs5CgRU/4afSbCSAKgSAAUCUCqdndylwdEbJwPdKVXReNau4OhSAAUCUDqbKGpfTlT565G+3Cv7Os7qd7fXvAPRJEAKBKAVO1uo+f7ab121TlU6dTxjCQAigRAkQC0ehw29gl13t3bnledZwdrdzAUCYAiAVjZMzu1bjTVXzeVe2305mUwkgAoEgBFArBytlCHu/a0Tq0VbXikkQRAkQAoEoDy98xeeQZdZtzts+w2+jKqczOSACgSAEUCUPakK89u2Hi/d+azsT8pg5EEQJEAKBKAlTyp2sPdmcN2X3iHqTqkkQRAkQAoEoDU98x29iedXLmXdoqpdaPo964nfQiKBECRAITfMztFJjeqvt87a0vVfazVvHCjZmgkAVAkAIoEIKzdTdXWot9PrUt1ehYy/rQxh+ha8yQwigRAkQCk1pOuPIc7w9TZptXPd3wrGss86UNQJACKBKDc4/BkrtzP1Bm3mkcaSQAUCYAiAXiEJ2XyhqkaXYZqv9zGvqUTIwmAIgFQJACt7z6vsnGeQuba6n2qTOVnEUYSAEUCoEgAUt9VMcXU+XKdsU46OVB13E5/h5EEQJEAKBKA8AxWeQ5GEgBFAqBIAP4CXFUNUFny8qgAAAAASUVORK5CYII=';
+
+function openCartes(){
+  if (typeof isViewer === 'function' && isViewer()) return;
+  var list = (typeof getList === 'function' ? getList() : []) || [];
+  if (!list.length){ toast('Aucun élève dans ce groupe.'); return; }
+  var label = (GROUPS[curGroup] && GROUPS[curGroup].label) || curGroup;
+  var saison = '20' + CLUB.saisonCle.slice(0,2) + '-20' + CLUB.saisonCle.slice(2);
+  var esc = function(v){ return String(v || '').replace(/</g, '&lt;'); };
+  var cartes = list.map(function(s){
+    return '<div class="carteacc">'
+      + '<div class="ca-head"><span>🥊 CLUB FCM</span><span>ACCÈS FAMILLE</span></div>'
+      + '<div class="ca-body">'
+      +   '<div class="ca-id">'
+      +     '<div class="ca-nom">' + esc(s.prenom) + ' ' + esc(s.nom).toUpperCase() + '</div>'
+      +     '<div class="ca-grp">' + esc(label) + ' · ' + saison + '</div>'
+      +     '<div class="ca-codel">CODE PERSONNEL</div>'
+      +     '<div class="ca-code">' + esc(s.accessCode || '----') + '</div>'
+      +   '</div>'
+      +   '<div class="ca-qr"><img src="' + QR_SUIVI + '" alt="QR"></div>'
+      + '</div>'
+      + '<div class="ca-foot">cyberfunwar.github.io/fcm-personel/<b>suivi.html</b> — profil « Élève / Famille »,<br>connexion avec <b>votre e-mail</b> (celui donné au club) + <b>ce code</b></div>'
+      + '</div>';
+  }).join('');
+  var ov = document.createElement('div');
+  ov.id = 'cartes-ov';
+  ov.innerHTML = '<style>'
+    + '#cartes-ov{position:fixed;inset:0;background:#4A4A4A;z-index:100000;overflow-y:auto;padding:18px}'
+    + '#cartes-ov .ca-bar{position:sticky;top:0;z-index:2;display:flex;gap:10px;justify-content:center;margin-bottom:14px}'
+    + '#cartes-ov .ca-bar button{border:none;border-radius:9px;padding:12px 22px;font-weight:800;font-size:14px;cursor:pointer}'
+    + '#cartes-ov .ca-grid{display:grid;grid-template-columns:repeat(2, 85mm);gap:4mm;justify-content:center;background:#fff;padding:8mm;margin:0 auto;max-width:200mm}'
+    + '.carteacc{width:85mm;height:52mm;border:1px dashed #B5B5B5;border-radius:3mm;overflow:hidden;background:#FFFDF8;display:flex;flex-direction:column;page-break-inside:avoid;break-inside:avoid}'
+    + '.ca-head{background:#7B0000;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:2mm 3.5mm;font-weight:900;font-size:3.2mm;letter-spacing:.3mm;border-bottom:1mm solid #C9A84C}'
+    + '.ca-body{flex:1;display:flex;align-items:center;gap:3mm;padding:2.5mm 3.5mm}'
+    + '.ca-id{flex:1;min-width:0}'
+    + '.ca-nom{font-weight:900;font-size:4.4mm;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    + '.ca-grp{font-size:2.9mm;color:#8A6A00;font-weight:700;margin:.6mm 0 1.8mm}'
+    + '.ca-codel{font-size:2.4mm;color:#999;letter-spacing:.5mm;font-weight:700}'
+    + '.ca-code{font-size:9mm;font-weight:900;color:#7B0000;letter-spacing:2mm;line-height:1.05}'
+    + '.ca-qr img{width:20mm;height:20mm;display:block}'
+    + '.ca-foot{background:#F4EDDD;color:#5A4A1E;font-size:2.5mm;line-height:1.35;text-align:center;padding:1.6mm 2mm}'
+    + '@media print{'
+    +   'body *{visibility:hidden !important}'
+    +   '#cartes-ov, #cartes-ov *{visibility:visible !important}'
+    +   '#cartes-ov{position:absolute !important;inset:0;background:#fff;padding:0;overflow:visible}'
+    +   '#cartes-ov .ca-bar{display:none !important}'
+    +   '#cartes-ov .ca-grid{padding:6mm;gap:4mm}'
+    + '}'
+    + '</style>'
+    + '<div class="ca-bar">'
+    +   '<button onclick="window.print()" style="background:#1A7E2E;color:#fff">🖨 Imprimer (' + list.length + ' cartes — ' + esc(label) + ')</button>'
+    +   '<button onclick="closeCartes()" style="background:#fff;color:#444">Fermer ✕</button>'
+    + '</div>'
+    + '<div class="ca-grid">' + cartes + '</div>';
+  document.body.appendChild(ov);
+}
+function closeCartes(){ var o = document.getElementById('cartes-ov'); if (o) o.remove(); }
+
 function openPreins(){
   if (typeof isAdmin === 'function' && !isAdmin()){ toast('🔒 Réservé à l\'administrateur.'); return; }
   if (!db){ toast('⚠️ Connexion Firebase requise.'); return; }
@@ -3270,6 +3335,7 @@ function renderCarnet(){
       try{ renderSlist(); }catch(e){}
     }
   }
+  try{ majEmailPropose(); }catch(e){}
 }
 
 // ── Écriture élève : lecture-modification-écriture ciblée du document Firestore ──
@@ -3293,6 +3359,46 @@ function _carnetMarquerLu(id){
     var n = Array.isArray(fam.carnet) ? fam.carnet.length : 0;
     localStorage.setItem(_carnetVuKey(id), String(n));
   }catch(e){}
+}
+
+// ── Auto-collecte d'e-mail : proposition de la famille → adoption en un clic ──
+function majEmailPropose(){
+  var box = document.getElementById('email-propose');
+  if (!box) return;
+  var prop = ((famille && famille.emailPropose) || '').trim();
+  var cur = (((document.getElementById('email') || {}).value) || '').trim().toLowerCase();
+  if (!prop || (typeof isViewer === 'function' && isViewer()) || prop.toLowerCase() === cur){
+    box.style.display = 'none'; box.innerHTML = ''; return;
+  }
+  box.innerHTML = '<div style="margin-top:6px;background:#FBF4E2;border:1.5px solid var(--gold,#C9A84C);border-radius:8px;padding:8px 11px;font-size:12px;color:#6B4E00;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+    + '<span>📧 La famille se connecte avec : <b>' + prop.replace(/</g, '&lt;') + '</b></span>'
+    + '<button type="button" onclick="adopterEmailPropose()" style="border:none;background:#1A7E2E;color:#fff;border-radius:6px;padding:5px 10px;font-weight:800;font-size:11px;cursor:pointer">✓ Adopter</button>'
+    + '<button type="button" onclick="ignorerEmailPropose()" style="border:1.5px solid #C33;background:#fff;color:#C33;border-radius:6px;padding:5px 10px;font-weight:800;font-size:11px;cursor:pointer">✕ Ignorer</button>'
+    + '</div>';
+  box.style.display = '';
+}
+async function adopterEmailPropose(){
+  var prop = ((famille && famille.emailPropose) || '').trim();
+  if (!prop) return;
+  var el = document.getElementById('email');
+  if (el) el.value = prop;
+  try{ await saveData(); }catch(e){}
+  _purgerEmailPropose();
+  toast('📧 E-mail adopté : la connexion de cette famille est désormais vérifiée.');
+}
+function ignorerEmailPropose(){ _purgerEmailPropose(); }
+function _purgerEmailPropose(){
+  if (famille) delete famille.emailPropose;
+  var box = document.getElementById('email-propose');
+  if (box){ box.style.display = 'none'; box.innerHTML = ''; }
+  if (!db || !curId) return;
+  var ref = db.collection(GROUPS[curGroup].col).doc(curId);
+  ref.get().then(function(snap){
+    if (!snap.exists) return;
+    var d = snap.data() || {};
+    var fam = (d.famille && typeof d.famille === 'object') ? d.famille : {};
+    if ('emailPropose' in fam){ delete fam.emailPropose; return ref.update({ famille: fam }); }
+  }).catch(function(){});
 }
 
 function _patchFicheEleve(mutator, onDone){
@@ -4054,6 +4160,20 @@ async function viewerLoadByCode(code, email){
           localStorage.setItem(KGROUP,gid);
           await loadStudent(doc.id);
           lockViewerOnStudent();
+          // Auto-collecte : fiche sans e-mail enregistré → l'adresse saisie est
+          // proposée au club (champ famille, seul autorisé aux sessions élèves).
+          if (!((data.fields && data.fields.email) || '').trim() && mailSaisi){
+            try{
+              const refAC = db.collection(col).doc(doc.id);
+              const snapAC = await refAC.get();
+              const dAC = snapAC.data() || {};
+              const famAC = (dAC.famille && typeof dAC.famille === 'object') ? dAC.famille : {};
+              if (famAC.emailPropose !== mailSaisi){
+                famAC.emailPropose = mailSaisi;
+                await refAC.update({ famille: famAC });
+              }
+            }catch(e){}
+          }
           setSinf('✓ Votre fiche','ok');
           return;
         }
