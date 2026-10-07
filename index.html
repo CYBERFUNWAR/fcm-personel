@@ -2791,7 +2791,12 @@ function openCartes(){
       +     '<div class="ca-nom">' + esc(s.prenom) + ' ' + esc(s.nom).toUpperCase() + '</div>'
       +     '<div class="ca-grp">' + esc(label) + ' · ' + saison + '</div>'
       +     '<div class="ca-codel">CODE PERSONNEL</div>'
-      +     '<div class="ca-code">' + esc(s.accessCode || '----') + '</div>'
+      +     (function(){
+              var c = esc(s.accessCode || '----');
+              var fs = c.length > 9 ? '4.6mm' : (c.length > 6 ? '5.6mm' : '9mm');
+              var ls = c.length > 6 ? '.6mm' : '2mm';
+              return '<div class="ca-code" style="font-size:' + fs + ';letter-spacing:' + ls + '">' + c + '</div>';
+            })()
       +   '</div>'
       +   '<div class="ca-qr"><img src="' + QR_SUIVI + '" alt="QR"></div>'
       + '</div>'
@@ -2812,7 +2817,7 @@ function openCartes(){
     + '.ca-nom{font-weight:900;font-size:4.4mm;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
     + '.ca-grp{font-size:2.9mm;color:#8A6A00;font-weight:700;margin:.6mm 0 1.8mm}'
     + '.ca-codel{font-size:2.4mm;color:#999;letter-spacing:.5mm;font-weight:700}'
-    + '.ca-code{font-size:9mm;font-weight:900;color:#7B0000;letter-spacing:2mm;line-height:1.05}'
+    + '.ca-code{font-weight:900;color:#7B0000;line-height:1.05;white-space:nowrap;overflow:hidden}'
     + '.ca-qr img{width:20mm;height:20mm;display:block}'
     + '.ca-foot{background:#F4EDDD;color:#5A4A1E;font-size:2.5mm;line-height:1.35;text-align:center;padding:1.6mm 2mm}'
     + '@media print{'
