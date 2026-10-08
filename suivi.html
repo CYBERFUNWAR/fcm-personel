@@ -2259,9 +2259,9 @@ function renderAppel(){
   closeAppel();
   var ov = document.createElement('div');
   ov.id = 'appel-ov';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:center;justify-content:center;padding:14px';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:center;justify-content:center;padding:6px';
   ov.innerHTML =
-    '<div style="background:#FFFDF8;border-radius:16px;max-width:980px;width:100%;max-height:96vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
+    '<div style="background:#FFFDF8;border-radius:16px;max-width:980px;width:100%;height:96vh;height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
     + '<div style="background:var(--red,#7B0000);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
     +   '<div style="font-weight:900;font-size:16px">📋 <span id="appel-title">Appel — ' + (GROUPS[curGroup].label || '') + ' · r3</span>' + '</div>'
     +   '<div style="margin-left:auto;display:flex;align-items:center;gap:6px">'
@@ -2279,12 +2279,12 @@ function renderAppel(){
     + '</div>'
     + '<div id="appel-grid" style="padding:14px 16px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));grid-auto-rows:max-content;align-items:start;gap:12px"></div>'
     + '<div style="border-top:1px solid #EEE;padding:11px 16px;background:#FBF7EC">'
-    +   '<textarea id="appel-note" placeholder="Note de séance : RAS, incident, blessure, matériel, remarque…" style="width:100%;min-height:42px;padding:8px 10px;border:1px solid #E2D9BE;border-radius:8px;font-size:13px;box-sizing:border-box"></textarea>'
+    +   '<textarea id="appel-note" rows="1" placeholder="Note de séance : RAS, incident, blessure…" style="width:100%;min-height:34px;max-height:70px;padding:7px 10px;border:1px solid #E2D9BE;border-radius:8px;font-size:13px;box-sizing:border-box"></textarea>'
     +   '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'
     +     '<label style="font-size:11px;font-weight:700;color:#7B0000">SIGNÉ PAR <input type="text" id="appel-prof" placeholder="Nom du prof" style="margin-left:5px;padding:6px 9px;border:1px solid #DDD;border-radius:7px;font-size:13px;width:150px"></label>'
     +     '<div style="margin-left:auto;display:flex;gap:8px">'
-    +       '<button onclick="closeAppel()" style="border:none;background:#EEE;border-radius:9px;padding:10px 16px;font-size:13px;cursor:pointer">Annuler</button>'
-    +       '<button id="appel-btn-valider" onclick="validerAppel()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:800;cursor:pointer">✅ Valider l\'appel</button>'
+    +       '<button onclick="closeAppel()" style="border:none;background:#EEE;border-radius:10px;padding:14px 18px;font-size:14px;cursor:pointer">Annuler</button>'
+    +       '<button id="appel-btn-valider" onclick="validerAppel()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:10px;padding:14px 26px;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 3px 10px rgba(123,0,0,.35)">✅ Valider l\'appel</button>'
     +     '</div>'
     +   '</div>'
     + '</div>'
