@@ -632,6 +632,7 @@ function applyViewerMode(){
   var gb = document.querySelector('.grp-bar'); if(gb) gb.style.display='none';
   // Masquer le bouton d'ouverture de la liste des élèves (sélecteur)
   var sw = document.querySelector('.sw-btn'); if(sw) sw.style.pointerEvents='none', sw.style.opacity='.85';
+  var addb = document.querySelector('.addeleve-btn'); if(addb) addb.style.display='none';
   // Masquer toute la barre d'action (sauvegarde/PDF/import/reset)
   var ab = document.querySelector('.abar'); if(ab) ab.style.display='none';
   // Masquer le bloc de création d'élève
@@ -806,6 +807,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
   </div>
   <div class="tn-center">
     <button class="sw-btn" onclick="openModal()" style="position:relative">👤 <span id="cur-display">Sélectionner un élève</span> ▾<span id="carnet-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#E8900C;color:#fff;font-size:11.5px;font-weight:900;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1">0</span></button>
+    <button class="sw-btn addeleve-btn" onclick="openNouvelEleve()" title="Créer un nouvel élève dans ce groupe" style="padding-left:12px;padding-right:12px;font-weight:900">➕</button>
     <div class="fb-status" title="Statut de la connexion Firebase" style="cursor:default">
       <div class="fb-dot" id="fb-dot"></div>
       <span id="fb-label">Non connecté</span>
@@ -4060,6 +4062,18 @@ function openDashboard(){
   document.getElementById('dash-modal').classList.add('open');
 }
 function closeDashboard(){ document.getElementById('dash-modal').classList.remove('open'); }
+
+// Accès direct au formulaire « Nouvel élève » depuis le menu principal
+function openNouvelEleve(){
+  if (typeof isViewer === 'function' && isViewer()) return;
+  openModal();
+  setTimeout(function(){
+    var nsf = document.querySelector('.nsf');
+    if (nsf) nsf.scrollIntoView({ behavior:'smooth', block:'start' });
+    var n = document.getElementById('n-nom');
+    if (n) n.focus();
+  }, 120);
+}
 
 async function createStudent(){
   const nom=document.getElementById('n-nom').value.trim();
