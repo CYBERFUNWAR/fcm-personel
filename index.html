@@ -1889,6 +1889,7 @@ function toggleAtt(idx,val){
   }
   att[idx]=(att[idx]===val)?0:val;
   refreshAtt();markUnsaved();
+  try{ medailles = _appliquerAuto(medailles, att); renderMedailles(); }catch(e){}
 }
 
 function getAttCount(){ return (GROUPS[curGroup]&&GROUPS[curGroup].attCount)||63; }
@@ -2045,21 +2046,23 @@ function _autoMedailles(attArr){
     var total = getAttCount();
     var pres = 0, abs = 0, runStart = null, runEnd = null, best = 0;
     for (var i = 0; i < total; i++){
-      var raw = localStorage.getItem(_seanceKey(curGroup, i));
-      if (!raw) continue;                                   // séance non validée : ignorée
-      var dte = null;
-      try{ dte = Date.parse((JSON.parse(raw) || {}).date || '') || null; }catch(e){}
       var v = attArr[i];
-      if (v === 1){
-        pres++;
-        if (dte){
+      if (v === 1) pres++;
+      else if (v === -1) abs++;
+      // Marathonien : série datée, sur les séances validées par appel
+      var raw = localStorage.getItem(_seanceKey(curGroup, i));
+      if (raw){
+        var dte = null;
+        try{ dte = Date.parse((JSON.parse(raw) || {}).date || '') || null; }catch(e){}
+        if (v === 1 && dte){
           if (runStart === null) runStart = dte;
           runEnd = dte;
           if (runEnd - runStart > best) best = runEnd - runStart;
+        } else if (v !== 1){
+          runStart = null; runEnd = null;                   // la série est brisée
         }
-      } else {
-        if (v === -1) abs++;
-        runStart = null; runEnd = null;                     // la série est brisée
+      } else if (v === -1){
+        runStart = null; runEnd = null;
       }
     }
     res.dizaine = pres >= 10;
