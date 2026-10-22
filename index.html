@@ -2013,12 +2013,19 @@ function applyGres(){
 //  de jeu vidéo : grisées tant qu'elles ne sont pas obtenues.
 // ══════════════════════════════════════════════════════════════════
 var MEDAILLES = [
-  { id:'sage',        ico:'🧘', titre:'Sage comme une image',  desc:'Ne jamais perturber le cours pendant un mois entier.' },
-  { id:'assiduite',   ico:'📅', titre:'Assiduité exemplaire',  desc:'Être présent à 100 % des séances.' },
+  { id:'ninja',       ico:'🤫', titre:'Ninja',                 desc:'Se faire oublier tellement on est discipliné : un mois sans perturber le cours.' },
+  { id:'dizaine',     ico:'🔟', titre:'Première dizaine',      desc:'Participer à 10 séances.', auto:true },
+  { id:'assiduite',   ico:'📅', titre:'Assiduité exemplaire',  desc:'Être présent à 100 % des séances (compté à partir de 10 appels validés).', auto:true },
+  { id:'marathonien', ico:'🗓️', titre:'Marathonien',          desc:'Enchaîner 3 mois sans manquer une seule séance.', auto:true },
+  { id:'centurion',   ico:'💯', titre:'Centurion',             desc:'Participer à 100 séances au club, toutes saisons confondues.' },
+  { id:'levetot',     ico:'🌅', titre:'Lève-tôt',              desc:'Arriver en avance au cours pendant un mois.' },
+  { id:'tempete',     ico:'❄️', titre:'Braveur de tempête',    desc:'Venir s\'entraîner même par un temps à ne pas mettre un karatéka dehors.' },
   { id:'ceinture',    ico:'🥋', titre:'Nouvelle ceinture',     desc:'Réussir un passage de grade.' },
   { id:'assaut',      ico:'🥊', titre:'Premier assaut',        desc:'Participer à son premier assaut en club.' },
+  { id:'victoire',    ico:'🏅', titre:'Première victoire',     desc:'Gagner son premier combat officiel.' },
   { id:'competiteur', ico:'🏟️', titre:'Compétiteur',          desc:'Participer à une compétition officielle.' },
   { id:'podium',      ico:'🥇', titre:'Podium',                desc:'Monter sur un podium en compétition.' },
+  { id:'jambes',      ico:'🦵', titre:'Jambes d\'acier',       desc:'Maîtriser les coups de pied de niveau avancé.' },
   { id:'force',       ico:'💪', titre:'Force de la nature',    desc:'Battre son record personnel aux tests physiques.' },
   { id:'entraide',    ico:'🤝', titre:'Esprit d\'entraide',    desc:'Aider un camarade à progresser.' },
   { id:'technicien',  ico:'🎯', titre:'Technicien',            desc:'Maîtriser une technique difficile, validée par le coach.' },
@@ -2026,8 +2033,56 @@ var MEDAILLES = [
   { id:'respect',     ico:'🙇', titre:'Respect du dojo',       desc:'Salut, tenue et ponctualité irréprochables pendant un mois.' },
   { id:'etoile',      ico:'🌟', titre:'Élève du mois',         desc:'Être désigné élève du mois par les coachs.' },
   { id:'fairplay',    ico:'🛡️', titre:'Fair-play',            desc:'Comportement exemplaire en assaut, en victoire comme en défaite.' },
-  { id:'fusee',       ico:'🚀', titre:'Progression éclair',    desc:'Progression remarquable constatée par les coachs.' }
+  { id:'fusee',       ico:'🚀', titre:'Progression éclair',    desc:'Progression remarquable constatée par les coachs.' },
+  { id:'fidele',      ico:'🎂', titre:'Fidèle au poste',       desc:'Fêter sa 2ᵉ saison au club.' },
+  { id:'legende',     ico:'💎', titre:'Légende du FCM',        desc:'Débloquer toutes les autres médailles. Le trophée platine du FCM !', auto:true }
 ];
+
+// ── Médailles automatiques : calculées depuis l'assiduité (appels validés) ──
+function _autoMedailles(attArr){
+  var res = { dizaine:false, assiduite:false, marathonien:false };
+  try{
+    var total = getAttCount();
+    var pres = 0, abs = 0, runStart = null, runEnd = null, best = 0;
+    for (var i = 0; i < total; i++){
+      var raw = localStorage.getItem(_seanceKey(curGroup, i));
+      if (!raw) continue;                                   // séance non validée : ignorée
+      var dte = null;
+      try{ dte = Date.parse((JSON.parse(raw) || {}).date || '') || null; }catch(e){}
+      var v = attArr[i];
+      if (v === 1){
+        pres++;
+        if (dte){
+          if (runStart === null) runStart = dte;
+          runEnd = dte;
+          if (runEnd - runStart > best) best = runEnd - runStart;
+        }
+      } else {
+        if (v === -1) abs++;
+        runStart = null; runEnd = null;                     // la série est brisée
+      }
+    }
+    res.dizaine = pres >= 10;
+    res.assiduite = (pres + abs) >= 10 && abs === 0;
+    res.marathonien = best >= 90 * 24 * 3600 * 1000;        // ~3 mois sans absence
+  }catch(e){}
+  return res;
+}
+function _appliquerAuto(list, attArr){
+  if (!Array.isArray(list)) list = [];
+  var r = _autoMedailles(attArr || []);
+  ['dizaine','assiduite','marathonien'].forEach(function(id){
+    var i = list.indexOf(id);
+    if (r[id] && i === -1) list.push(id);
+    if (!r[id] && i > -1) list.splice(i, 1);
+  });
+  // 💎 Trophée platine : toutes les autres médailles débloquées
+  var toutes = MEDAILLES.every(function(m){ return m.id === 'legende' || list.indexOf(m.id) > -1; });
+  var li = list.indexOf('legende');
+  if (toutes && li === -1) list.push('legende');
+  if (!toutes && li > -1) list.splice(li, 1);
+  return list;
+}
 var medailles = [];
 function renderMedailles(){
   var cont = document.getElementById('medailles-cont');
@@ -2043,7 +2098,7 @@ function renderMedailles(){
       + ' style="cursor:pointer;text-align:center;padding:12px 6px 10px;border-radius:12px;border:1.5px solid ' + (on ? 'var(--gold,#C9A84C)' : '#E3E0D6') + ';background:' + (on ? '#FBF4E2' : '#FAFAF7') + ';' + (on ? 'box-shadow:0 3px 10px rgba(201,168,76,.3);' : '') + 'user-select:none;-webkit-tap-highlight-color:transparent">'
       + '<div style="font-size:34px;line-height:1;' + (on ? '' : 'filter:grayscale(1);opacity:.32;') + '">' + m.ico + '</div>'
       + '<div style="font-size:11px;font-weight:800;margin-top:7px;color:' + (on ? '#7B0000' : '#9A9890') + ';line-height:1.25">' + m.titre + '</div>'
-      + (on ? '<div style="font-size:9px;color:#A8882E;font-weight:700;margin-top:3px">★ DÉBLOQUÉE</div>' : '<div style="font-size:9px;color:#C0BEB4;margin-top:3px">À débloquer</div>')
+      + (on ? '<div style="font-size:9px;color:#A8882E;font-weight:700;margin-top:3px">★ DÉBLOQUÉE</div>' : '<div style="font-size:9px;color:#C0BEB4;margin-top:3px">' + (m.auto ? '⚙ automatique' : 'À débloquer') + '</div>')
       + '</div>';
   }).join('');
 }
@@ -2051,6 +2106,10 @@ function toggleMedaille(id){
   var m = null;
   for (var i = 0; i < MEDAILLES.length; i++){ if (MEDAILLES[i].id === id) m = MEDAILLES[i]; }
   if (!m) return;
+  if (m.auto){
+    toast('⚙ ' + m.titre + ' — médaille automatique : ' + m.desc);
+    return;
+  }
   // Élève / famille : la médaille raconte comment s'obtenir, rien d'autre
   if (typeof isViewer === 'function' && isViewer()){
     toast('🏅 ' + m.titre + ' : ' + m.desc);
@@ -2060,6 +2119,7 @@ function toggleMedaille(id){
   var idx = medailles.indexOf(id);
   if (idx > -1){ medailles.splice(idx, 1); toast('Médaille retirée : ' + m.titre); }
   else { medailles.push(id); toast('🏅 Médaille débloquée : ' + m.titre + ' !'); }
+  medailles = _appliquerAuto(medailles, att);   // la Légende 💎 peut tomber (ou retomber) ici
   renderMedailles();
   markUnsaved();
 }
@@ -2079,8 +2139,7 @@ function apply(data){
   att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};
   carnet = Array.isArray(data.carnet) ? data.carnet.slice() : [];
   renderCarnet();
-  medailles = Array.isArray(data.medailles) ? data.medailles.slice() : [];
-  renderMedailles();
+  medailles = (Array.isArray(data.medailles) ? data.medailles.slice() : []).map(function(id){ return id === 'sage' ? 'ninja' : id; });
   _curAccessCode = data.accessCode || ''; // mémoriser le code de la fiche
   if(data.fields){
     // Initialiser les champs manquants avec '' (compatibilité anciens élèves)
@@ -2102,6 +2161,8 @@ function apply(data){
   if(data.tech)tech={...data.tech};
   if(data.phys)phys={...data.phys};
   if(data.gres)gres={...data.gres};
+  medailles = _appliquerAuto(medailles, att);
+  renderMedailles();
   buildAtt();buildTech();buildPhys();applyGres();
   document.getElementById('comp-body').innerHTML='';
   if(data.comp&&data.comp.length)data.comp.forEach(r=>addCompRow(r));
@@ -2517,6 +2578,8 @@ function validerAppel(){
   localStorage.setItem(_profKey(), prof);
   var nb = _appel.list.filter(function(s){ return _appel.present[s.id]; }).length;
   var skipped = 0;
+  var entry = { groupe: curGroup, seance: idx+1, date: date, note: note, prof: prof, presents: nb, total: _appel.list.length, ts: Date.now() };
+  localStorage.setItem(_seanceKey(curGroup, idx), JSON.stringify(entry));
   var tasks = _appel.list.map(function(s){
     var d = _appel.docs[s.id];
     var base = d && d.data;
@@ -2524,10 +2587,12 @@ function validerAppel(){
     if (!Array.isArray(base.att)) base.att = [];
     while (base.att.length < _appel.total) base.att.push(0);
     base.att[idx] = _appel.present[s.id] ? 1 : -1;
+    try{ base.medailles = _appliquerAuto(Array.isArray(base.medailles) ? base.medailles : [], base.att); }catch(e){}
     try{ localStorage.setItem(KS(s.id), JSON.stringify(base)); }catch(e){}
     // fiche actuellement ouverte : rafraîchir l'assiduité à l'écran
     if (s.id === curId){
       try{ att = base.att.slice(); if (typeof refreshAtt === 'function') refreshAtt(); }catch(e){}
+      try{ medailles = (base.medailles || []).slice(); renderMedailles(); }catch(e){}
     }
     if (db){
       var doc = { payload: JSON.stringify(base) };
@@ -2538,8 +2603,6 @@ function validerAppel(){
     }
     return Promise.resolve();
   });
-  var entry = { groupe: curGroup, seance: idx+1, date: date, note: note, prof: prof, presents: nb, total: _appel.list.length, ts: Date.now() };
-  localStorage.setItem(_seanceKey(curGroup, idx), JSON.stringify(entry));
   if (db){
     db.collection('seances_journal').doc(CLUB.saisonCle+'_'+curGroup+'_'+idx).set(entry).catch(function(){});
   }
