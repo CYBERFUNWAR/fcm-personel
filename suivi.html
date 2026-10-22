@@ -80,11 +80,11 @@ window.CLUB = {
   enfants:      { label:'Enfants',                    tabs:[0,1,2,3,4,5], col:'students_enfants',      attType:'phases',  attCount:64,  days:'Lun & Jeu' },
   ados:         { label:'Adolescents – Tous niveaux', tabs:[0,1,2,3,4,5], col:'students_ados',         attType:'phases',  attCount:64,  days:'Lun & Jeu' },
   adultes:      { label:'Adultes Loisirs',            tabs:[0,1,2,3,4,5], col:'students_adultes',      attType:'phases',  attCount:64,  days:'Lun & Jeu' },
-  seniors:      { label:'Seniors',                    tabs:[0,1,5],       col:'students_seniors',      attType:'flat',    attCount:31,  days:'Mercredi',
+  seniors:      { label:'Seniors',                    tabs:[0,1,3,5],       col:'students_seniors',      attType:'flat',    attCount:31,  days:'Mercredi',
     months:{'Sep 2026':3,'Oct 2026':3,'Nov 2026':2,'Déc 2026':3,'Jan 2027':4,'Fév 2027':2,'Mar 2027':5,'Avr 2027':2,'Mai 2027':4,'Juin 2027':3} },
-  aerokick:     { label:'Aérokick',                   tabs:[0,1,5],       col:'students_aerokick',     attType:'flat',    attCount:32,  days:'Mardi',
+  aerokick:     { label:'Aérokick',                   tabs:[0,1,3,5],       col:'students_aerokick',     attType:'flat',    attCount:32,  days:'Mardi',
     months:{'Sep 2026':3,'Oct 2026':3,'Nov 2026':3,'Déc 2026':3,'Jan 2027':4,'Fév 2027':2,'Mar 2027':5,'Avr 2027':1,'Mai 2027':4,'Juin 2027':4} },
-  fitboxing:    { label:'Fit Boxing',                 tabs:[0,1,5],       col:'students_fitboxing',    attType:'flat',    attCount:32,  days:'Fit Boxing',
+  fitboxing:    { label:'Fit Boxing',                 tabs:[0,1,3,5],       col:'students_fitboxing',    attType:'flat',    attCount:32,  days:'Fit Boxing',
     months:{'Sep 2026':3,'Oct 2026':3,'Nov 2026':3,'Déc 2026':3,'Jan 2027':4,'Fév 2027':2,'Mar 2027':5,'Avr 2027':1,'Mai 2027':4,'Juin 2027':4} },
   sensei:       { label:'Sensei',                     tabs:[0,1],         col:'students_sensei',       attType:'flat',    attCount:160, days:'Lun – Ven',
     months:{'Sep 2026':13,'Oct 2026':17,'Nov 2026':15,'Déc 2026':14,'Jan 2027':19,'Fév 2027':10,'Mar 2027':23,'Avr 2027':10,'Mai 2027':21,'Juin 2027':18} },
@@ -846,9 +846,8 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
   <div class="tab active" id="tab-0" onclick="switchTab(0)"><span class="tab-num">1</span>Identité</div>
   <div class="tab"        id="tab-1" onclick="switchTab(1)"><span class="tab-num">2</span>Assiduité</div>
   <!-- Onglet Technique individuel retiré : l'évaluation technique se fait au passage de grade (Évaluateur) et le suivi collectif via le 🎯 Programme du groupe -->
-  <div class="tab"        id="tab-3" onclick="switchTab(3)"><span class="tab-num">3</span>Grades & Compét.</div>
-  <div class="tab"        id="tab-4" onclick="switchTab(4)"><span class="tab-num">4</span>Physique</div>
-  <div class="tab"        id="tab-5" onclick="switchTab(5)"><span class="tab-num">5</span>Bilan</div>
+  <div class="tab"        id="tab-3" onclick="switchTab(3)"><span class="tab-num">3</span>🏅 Accomplissements</div>
+  <div class="tab"        id="tab-5" onclick="switchTab(5)"><span class="tab-num">4</span>Bilan</div>
 </div>
 
 <!-- PANEL 1 : IDENTITÉ -->
@@ -1008,6 +1007,9 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
 
 <!-- PANEL 4 : GRADES & COMPÉTITIONS -->
 <div class="panel" id="panel-3">
+  <div class="sh"><div class="sb"></div><h2>🏅 Accomplissements</h2><span class="hint" id="medailles-hint">Cliquez sur une médaille pour la débloquer ou la retirer</span></div>
+  <div id="medailles-cont" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px;padding:4px 0 10px"></div>
+  <div style="display:none"><!-- anciennes sections Grades & Compétitions : champs conservés pour les données et le bilan -->
   <div class="sh"><div class="sb"></div><h2>Examens de grades</h2></div>
   <table class="dt">
     <thead><tr><th>Session</th><th>Date</th><th>Grade présenté</th><th>Résultat</th><th>Observations</th></tr></thead>
@@ -1050,10 +1052,11 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
     <tbody id="comp-body"></tbody>
   </table>
   <button class="btn bgh" onclick="addCompRow()" style="font-size:11px;padding:6px 12px">+ Ajouter une compétition</button>
+  </div><!-- fin sections masquées -->
 </div>
 
-<!-- PANEL 5 : PHYSIQUE -->
-<div class="panel" id="panel-4">
+<!-- PANEL 5 : PHYSIQUE (retiré de la navigation, données conservées) -->
+<div class="panel" id="panel-4" style="display:none !important">
   <div class="sh"><div class="sb"></div><h2>Évaluations physiques</h2><span class="hint">3 mesures sur la saison</span></div>
   <div class="pgrid" id="phys-cont"></div>
 </div>
@@ -2005,12 +2008,68 @@ function applyGres(){
 // ══════════════════════════════════
 // COLLECT / APPLY
 // ══════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+//  ACCOMPLISSEMENTS — médailles débloquées par les coachs, façon succès
+//  de jeu vidéo : grisées tant qu'elles ne sont pas obtenues.
+// ══════════════════════════════════════════════════════════════════
+var MEDAILLES = [
+  { id:'sage',        ico:'🧘', titre:'Sage comme une image',  desc:'Ne jamais perturber le cours pendant un mois entier.' },
+  { id:'assiduite',   ico:'📅', titre:'Assiduité exemplaire',  desc:'Être présent à 100 % des séances.' },
+  { id:'ceinture',    ico:'🥋', titre:'Nouvelle ceinture',     desc:'Réussir un passage de grade.' },
+  { id:'assaut',      ico:'🥊', titre:'Premier assaut',        desc:'Participer à son premier assaut en club.' },
+  { id:'competiteur', ico:'🏟️', titre:'Compétiteur',          desc:'Participer à une compétition officielle.' },
+  { id:'podium',      ico:'🥇', titre:'Podium',                desc:'Monter sur un podium en compétition.' },
+  { id:'force',       ico:'💪', titre:'Force de la nature',    desc:'Battre son record personnel aux tests physiques.' },
+  { id:'entraide',    ico:'🤝', titre:'Esprit d\'entraide',    desc:'Aider un camarade à progresser.' },
+  { id:'technicien',  ico:'🎯', titre:'Technicien',            desc:'Maîtriser une technique difficile, validée par le coach.' },
+  { id:'perseverance',ico:'🔥', titre:'Jamais abattu',         desc:'Persévérer après un échec et revenir plus fort.' },
+  { id:'respect',     ico:'🙇', titre:'Respect du dojo',       desc:'Salut, tenue et ponctualité irréprochables pendant un mois.' },
+  { id:'etoile',      ico:'🌟', titre:'Élève du mois',         desc:'Être désigné élève du mois par les coachs.' },
+  { id:'fairplay',    ico:'🛡️', titre:'Fair-play',            desc:'Comportement exemplaire en assaut, en victoire comme en défaite.' },
+  { id:'fusee',       ico:'🚀', titre:'Progression éclair',    desc:'Progression remarquable constatée par les coachs.' }
+];
+var medailles = [];
+function renderMedailles(){
+  var cont = document.getElementById('medailles-cont');
+  if (!cont) return;
+  var viewer = (typeof isViewer === 'function' && isViewer());
+  var hint = document.getElementById('medailles-hint');
+  if (hint) hint.textContent = viewer
+    ? 'Touchez une médaille pour découvrir comment l\'obtenir'
+    : 'Cliquez sur une médaille pour la débloquer ou la retirer';
+  cont.innerHTML = MEDAILLES.map(function(m){
+    var on = medailles.indexOf(m.id) > -1;
+    return '<div onclick="toggleMedaille(\'' + m.id + '\')" title="' + m.titre + ' — ' + m.desc.replace(/"/g, '&quot;') + '"'
+      + ' style="cursor:pointer;text-align:center;padding:12px 6px 10px;border-radius:12px;border:1.5px solid ' + (on ? 'var(--gold,#C9A84C)' : '#E3E0D6') + ';background:' + (on ? '#FBF4E2' : '#FAFAF7') + ';' + (on ? 'box-shadow:0 3px 10px rgba(201,168,76,.3);' : '') + 'user-select:none;-webkit-tap-highlight-color:transparent">'
+      + '<div style="font-size:34px;line-height:1;' + (on ? '' : 'filter:grayscale(1);opacity:.32;') + '">' + m.ico + '</div>'
+      + '<div style="font-size:11px;font-weight:800;margin-top:7px;color:' + (on ? '#7B0000' : '#9A9890') + ';line-height:1.25">' + m.titre + '</div>'
+      + (on ? '<div style="font-size:9px;color:#A8882E;font-weight:700;margin-top:3px">★ DÉBLOQUÉE</div>' : '<div style="font-size:9px;color:#C0BEB4;margin-top:3px">À débloquer</div>')
+      + '</div>';
+  }).join('');
+}
+function toggleMedaille(id){
+  var m = null;
+  for (var i = 0; i < MEDAILLES.length; i++){ if (MEDAILLES[i].id === id) m = MEDAILLES[i]; }
+  if (!m) return;
+  // Élève / famille : la médaille raconte comment s'obtenir, rien d'autre
+  if (typeof isViewer === 'function' && isViewer()){
+    toast('🏅 ' + m.titre + ' : ' + m.desc);
+    return;
+  }
+  if (!curId){ toast('Sélectionnez d\'abord un élève.'); return; }
+  var idx = medailles.indexOf(id);
+  if (idx > -1){ medailles.splice(idx, 1); toast('Médaille retirée : ' + m.titre); }
+  else { medailles.push(id); toast('🏅 Médaille débloquée : ' + m.titre + ' !'); }
+  renderMedailles();
+  markUnsaved();
+}
+
 function collect(){
   const fields={};
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)fields[id]=el.value;});
   const comp=[];
   document.querySelectorAll('#comp-body tr').forEach(tr=>{comp.push(Array.from(tr.querySelectorAll('input')).map(i=>i.value));});
-  const out={fields,att:[...att],tech:{...tech},phys:{...phys},gres:{...gres},comp,carnet:carnet.slice()};
+  const out={fields,att:[...att],tech:{...tech},phys:{...phys},gres:{...gres},comp,carnet:carnet.slice(),medailles:medailles.slice()};
   if(_curAccessCode) out.accessCode=_curAccessCode; // conserver le code de consultation
   return out;
 }
@@ -2020,6 +2079,8 @@ function apply(data){
   att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};
   carnet = Array.isArray(data.carnet) ? data.carnet.slice() : [];
   renderCarnet();
+  medailles = Array.isArray(data.medailles) ? data.medailles.slice() : [];
+  renderMedailles();
   _curAccessCode = data.accessCode || ''; // mémoriser le code de la fiche
   if(data.fields){
     // Initialiser les champs manquants avec '' (compatibilité anciens élèves)
@@ -3597,7 +3658,7 @@ function clearForm(){
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showPhoto(null);
   updateAdhBadge();
-  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};carnet=[];renderCarnet();
+  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};carnet=[];renderCarnet();medailles=[];renderMedailles();
   buildAtt();buildTech();buildPhys();applyGres();
   document.getElementById('comp-body').innerHTML='';
   addCompRow();addCompRow();addCompRow();
@@ -3611,7 +3672,7 @@ function doReset(){
   SIDS.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showPhoto(null);
   updateAdhBadge();
-  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};carnet=[];renderCarnet();
+  att=new Array(getAttCount()).fill(0);tech={};phys={};gres={};carnet=[];renderCarnet();medailles=[];renderMedailles();
   buildAtt();buildTech();buildPhys();applyGres();
   document.getElementById('comp-body').innerHTML='';
   addCompRow();addCompRow();addCompRow();
