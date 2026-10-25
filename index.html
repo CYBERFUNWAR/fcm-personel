@@ -2056,6 +2056,19 @@ function beltRank(c){
   if (found.length > 1) return Math.min(found[0], found[1]) * 10 + 5;   // demi-ceinture
   return found[0] * 10;
 }
+function beltChip(c){
+  var s = String(c || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (!s.trim()) return '';
+  var isDan = /dan/.test(s) || s.indexOf('noire') > -1;
+  var cols = [];
+  _BELT_NOMS.forEach(function(n){ if (s.indexOf(n) > -1 && BELT_COLORS[n]) cols.push(BELT_COLORS[n]); });
+  var bg;
+  if (cols.length >= 2) bg = 'linear-gradient(90deg,' + cols[0] + ' 50%,' + cols[1] + ' 50%)';
+  else if (cols.length === 1) bg = cols[0];
+  else if (isDan) bg = '#141414';
+  else return '';
+  return '<span style="display:inline-block;width:26px;height:10px;border-radius:3px;background:' + bg + ';border:1px solid ' + (/dan/.test(s) ? 'var(--gold,#C9A84C)' : 'rgba(0,0,0,.22)') + ';vertical-align:middle;margin-right:6px;flex:none"></span>';
+}
 function triCeintureAlpha(a, b){
   var ra = beltRank(a.ceinture), rb = beltRank(b.ceinture);
   if (ra !== rb){
@@ -4085,7 +4098,7 @@ function renderSlist(){
       ${thumb}
       <div class="sinfo">
         <div class="sname">${full}${ic?' <span style="color:var(--gold);font-size:10px">● actif</span>':''}${pctBadge}${carBadge}</div>
-        <div class="ssub">${s.ceinture||'Ceinture non renseignée'}</div>
+        <div class="ssub">${beltChip(s.ceinture)}${s.ceinture||'Ceinture non renseignée'}</div>
         ${s.accessCode?`<div class="scode" style="font-size:10px;color:#1f5fa8;margin-top:2px">🔑 Code : <b>${s.accessCode}</b> <button class="copy-code" data-code="${s.accessCode}" style="background:none;border:1px solid #1f5fa8;color:#1f5fa8;border-radius:3px;font-size:9px;padding:0 5px;cursor:pointer;margin-left:4px">copier</button></div>`:''}
       </div>
       <div class="sacts">
