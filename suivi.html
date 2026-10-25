@@ -1117,6 +1117,7 @@ else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementByI
           style="flex:1;min-width:140px;border:1.5px solid var(--g2);border-radius:6px;padding:8px 11px;font-size:13px;outline:none;box-sizing:border-box">
         <select id="sl-sort" onchange="renderSlist()"
           style="border:1.5px solid var(--g2);border-radius:6px;padding:8px 9px;font-size:12px;background:white;cursor:pointer;outline:none">
+          <option value="grade" selected>Ceintures puis A→Z</option>
           <option value="manual">Ordre manuel</option>
           <option value="nom">Nom (A→Z)</option>
           <option value="prenom">Prénom (A→Z)</option>
@@ -2021,6 +2022,7 @@ var MEDAILLES = [
   { id:'centurion',   ico:'💯', titre:'Centurion',             desc:'Participer à 100 séances au club, toutes saisons confondues.' },
   { id:'levetot',     ico:'🌅', titre:'Lève-tôt',              desc:'Arriver en avance au cours pendant un mois.' },
   { id:'tempete',     ico:'❄️', titre:'Braveur de tempête',    desc:'Venir s\'entraîner même par un temps à ne pas mettre un karatéka dehors.' },
+  { id:'survivaliste',ico:'🎄', titre:'Survivaliste',          desc:'Revenir à l\'entraînement après les vacances de Noël.', auto:true },
   { id:'ceinture',    ico:'🥋', titre:'Nouvelle ceinture',     desc:'Réussir un passage de grade.' },
   { id:'assaut',      ico:'🥊', titre:'Premier assaut',        desc:'Participer à son premier assaut en club.' },
   { id:'victoire',    ico:'🏅', titre:'Première victoire',     desc:'Gagner son premier combat officiel.' },
@@ -2041,9 +2043,34 @@ var MEDAILLES = [
 ];
 
 // ── Médailles automatiques : calculées depuis l'assiduité (appels validés) ──
+// ── Tri « ordre des ceintures » puis alphabétique ──
+var _BELT_NOMS = ['blanche','jaune','orange','verte','bleue','marron','noire'];
+function beltRank(c){
+  var s = String(c || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (!s.trim()) return 999;                                 // ceinture non renseignée : en fin de liste
+  var m = s.match(/(\d+)\s*(?:er|eme|e)?\s*dan/);
+  if (m) return 60 + parseInt(m[1], 10);                     // Noire 1ᵉʳ→10ᵉ Dan
+  var found = [];
+  _BELT_NOMS.forEach(function(n, i){ if (s.indexOf(n) > -1) found.push(i); });
+  if (!found.length) return 999;
+  if (found.length > 1) return Math.min(found[0], found[1]) * 10 + 5;   // demi-ceinture
+  return found[0] * 10;
+}
+function triCeintureAlpha(a, b){
+  var ra = beltRank(a.ceinture), rb = beltRank(b.ceinture);
+  if (ra !== rb){
+    if (ra === 999) return 1;            // ceinture non renseignée : toujours en dernier
+    if (rb === 999) return -1;
+    return rb - ra;                      // ordre du salut : les plus gradés d'abord
+  }
+  return ((a.nom || '') + ' ' + (a.prenom || '')).localeCompare((b.nom || '') + ' ' + (b.prenom || ''), 'fr', { sensitivity:'base' });
+}
+
 function _autoMedailles(attArr){
-  var res = { dizaine:false, assiduite:false, marathonien:false };
+  var res = { dizaine:false, assiduite:false, marathonien:false, survivaliste:false };
   try{
+    var anFin = 2000 + (parseInt(CLUB.saisonCle.slice(2), 10) || 0);
+    var janvier = new Date(anFin, 0, 1).getTime();
     var total = getAttCount();
     var pres = 0, abs = 0, runStart = null, runEnd = null, best = 0;
     for (var i = 0; i < total; i++){
@@ -2056,6 +2083,7 @@ function _autoMedailles(attArr){
         var dte = null;
         try{ dte = Date.parse((JSON.parse(raw) || {}).date || '') || null; }catch(e){}
         if (v === 1 && dte){
+          if (dte >= janvier) res.survivaliste = true;      // 🎄 revenu après Noël
           if (runStart === null) runStart = dte;
           runEnd = dte;
           if (runEnd - runStart > best) best = runEnd - runStart;
@@ -2075,7 +2103,7 @@ function _autoMedailles(attArr){
 function _appliquerAuto(list, attArr){
   if (!Array.isArray(list)) list = [];
   var r = _autoMedailles(attArr || []);
-  ['dizaine','assiduite','marathonien'].forEach(function(id){
+  ['dizaine','assiduite','marathonien','survivaliste'].forEach(function(id){
     var i = list.indexOf(id);
     if (r[id] && i === -1) list.push(id);
     if (!r[id] && i > -1) list.splice(i, 1);
@@ -2329,6 +2357,7 @@ function openAppel(){
   if (typeof isViewer === 'function' && isViewer()) return;
   var list = getList();
   if (!list.length){ toast('Aucun élève dans ce groupe.'); return; }
+  list = list.slice().sort(triCeintureAlpha);
   _appel.list = list;
   _appel.docs = {};
   _appel.present = {};
@@ -4033,6 +4062,7 @@ function renderSlist(){
   if(sort==='nom') view.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr',{sensitivity:'base'}));
   else if(sort==='prenom') view.sort((a,b)=>(a.prenom||'').localeCompare(b.prenom||'','fr',{sensitivity:'base'}));
   else if(sort==='ceinture') view.sort((a,b)=>(a.ceinture||'').localeCompare(b.ceinture||'','fr',{sensitivity:'base'}));
+  else if(sort==='grade') view.sort(triCeintureAlpha);
   else if(sort==='assiduite') view.sort((a,b)=>{const pa=studentStats(a.id).pct,pb=studentStats(b.id).pct;return (pb===null?-1:pb)-(pa===null?-1:pa);});
 
   const dragEnabled=(sort==='manual'&&!q);
