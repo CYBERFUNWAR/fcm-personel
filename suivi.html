@@ -460,8 +460,8 @@ body{font-family:'Barlow',sans-serif;background:#1a1a1a;color:var(--dark);min-he
 <body>
 
 <!-- ════ OVERLAY MOT DE PASSE ════ -->
-<div id="pw-overlay" style="position:fixed;inset:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;transition:opacity .3s">
-  <div style="background:white;border-radius:12px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+<div id="pw-overlay" style="position:fixed;inset:0;background:#1a1a1a;display:flex;z-index:9999;padding:20px;transition:opacity .3s;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="background:white;border-radius:12px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);margin:auto">
     <div style="background:var(--red,#7B0000);padding:22px 20px;text-align:center;border-bottom:3px solid var(--gold,#C9A84C)">
       <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:10px;background:var(--gold,#C9A84C);color:var(--red,#7B0000);display:inline-block;padding:2px 10px;border-radius:2px;letter-spacing:1px;margin-bottom:8px" id="cfg-pw-badge">FULL CONTACT</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:27px;color:white;letter-spacing:1px" id="cfg-pw-title">FICHE DE SUIVI</div>
@@ -500,12 +500,12 @@ body{font-family:'Barlow',sans-serif;background:#1a1a1a;color:var(--dark);min-he
 
       <!-- Champ code élève (lecture seule) -->
       <div id="code-field" style="display:none">
-        <label style="font-size:12px;font-weight:700;color:#7B0000;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Adresse e-mail de la famille</label>
+        <label for="email-input" style="font-size:12px;font-weight:700;color:#7B0000;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Adresse e-mail de la famille</label>
         <input id="email-input" type="email" placeholder="exemple@mail.fr" autocomplete="email"
           style="width:100%;border:1.5px solid #CCC;border-radius:8px;padding:15px 16px;font-size:18px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:12px;-webkit-appearance:none;box-sizing:border-box"
           oninput="document.getElementById('pw-err').style.display='none'"
           onkeydown="if(event.key==='Enter')pwLogin()">
-        <label style="font-size:12px;font-weight:700;color:#7B0000;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Code personnel de l'élève</label>
+        <label for="code-input" style="font-size:12px;font-weight:700;color:#7B0000;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Code personnel de l'élève</label>
         <input id="code-input" type="text" placeholder="EX : LEO-7H3K" autocomplete="off"
           style="width:100%;border:1.5px solid #CCC;border-radius:8px;padding:15px 16px;font-size:22px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:8px;-webkit-appearance:none;box-sizing:border-box;text-transform:uppercase;letter-spacing:1px"
           oninput="document.getElementById('pw-err').style.display='none'"
@@ -553,7 +553,7 @@ function selectRole(role){
     pwField.style.display='none'; codeField.style.display='';
   }
   var inp = document.getElementById(role==='eleve'?'code-input':'pw-input');
-  if(inp){ inp.value=''; setTimeout(function(){inp.focus();},50); }
+  if(inp){ inp.value=''; if(window.innerWidth > 900){ setTimeout(function(){ try{ inp.focus(); }catch(e){} },50); } }
   document.getElementById('pw-err').style.display='none';
 }
 
@@ -791,7 +791,7 @@ if(checkAuth()){
       var _t=setInterval(function(){ if(typeof viewerLoadByCode==='function'&&typeof GROUPS!=='undefined'){ clearInterval(_t); viewerLoadByCode(_vc, _vm); } },300); }
   }
 }
-else { setTimeout(function(){ var r=_selectedRole; var el=document.getElementById(r==='eleve'?'code-input':'pw-input'); if(el)el.focus(); },200); }
+else { if(window.innerWidth > 900){ setTimeout(function(){ var r=_selectedRole; var el=document.getElementById(r==='eleve'?'code-input':'pw-input'); if(el) try{ el.focus(); }catch(e){} },200); } }
 </script>
 
 <div class="shell">
