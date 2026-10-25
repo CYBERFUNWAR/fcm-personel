@@ -635,6 +635,7 @@ function applyViewerMode(){
   // Masquer le bouton d'ouverture de la liste des élèves (sélecteur)
   var sw = document.querySelector('.sw-btn'); if(sw) sw.style.pointerEvents='none', sw.style.opacity='.85';
   var addb = document.querySelector('.addeleve-btn'); if(addb) addb.style.display='none';
+  var dmw = document.getElementById('modif-demande-wrap'); if(dmw) dmw.style.display='';
   // Masquer toute la barre d'action (sauvegarde/PDF/import/reset)
   var ab = document.querySelector('.abar'); if(ab) ab.style.display='none';
   // Masquer le bloc de création d'élève
@@ -808,7 +809,7 @@ else { if(window.innerWidth > 900){ setTimeout(function(){ var r=_selectedRole; 
     </div>
   </div>
   <div class="tn-center">
-    <button class="sw-btn" onclick="openModal()" style="position:relative">👤 <span id="cur-display">Sélectionner un élève</span> ▾<span id="carnet-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#E8900C;color:#fff;font-size:11.5px;font-weight:900;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1">0</span></button>
+    <button class="sw-btn" onclick="openModal()" style="position:relative">👤 <span id="cur-display">Sélectionner un élève</span> ▾<span id="carnet-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#E8900C;color:#fff;font-size:11.5px;font-weight:900;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1">0</span><span id="modif-badge" style="display:none;position:absolute;top:-7px;left:-7px;min-width:20px;height:20px;border-radius:10px;background:#D32F2F;color:#fff;font-size:10.5px;font-weight:900;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1">✏️</span></button>
     <button class="sw-btn addeleve-btn" onclick="openNouvelEleve()" title="Créer un nouvel élève dans ce groupe" style="padding-left:12px;padding-right:12px;font-weight:900">➕</button>
     <div class="fb-status" title="Statut de la connexion Firebase" style="cursor:default">
       <div class="fb-dot" id="fb-dot"></div>
@@ -854,6 +855,8 @@ else { if(window.innerWidth > 900){ setTimeout(function(){ var r=_selectedRole; 
 
 <!-- PANEL 1 : IDENTITÉ -->
 <div class="panel active" id="panel-0">
+<div id="modif-banner" style="display:none"></div>
+<div id="modif-demande-wrap" style="display:none;margin-bottom:14px"><button onclick="openDemandeModif()" style="width:100%;border:1.5px dashed var(--gold,#C9A84C);background:#FBF7EC;color:#7B0000;border-radius:10px;padding:12px;font-weight:800;font-size:13px;cursor:pointer">✏️ Demander une correction des informations</button></div>
   <style>@media print{ #alerte-decrochage{ display:none !important } }</style>
   <div id="alerte-decrochage" style="display:none;margin-bottom:10px;padding:10px 14px;border:2px solid #E65100;background:#FFF3E0;border-radius:10px;font-size:13px;font-weight:700;color:#B34700"></div>
   <div class="sh"><div class="sb"></div><h2>Identité de l'élève</h2><button id="btn-transfer" onclick="openTransfer()" title="Déplacer la fiche complète de cet élève vers un autre groupe (Enfants → Ados → Adultes…)" style="margin-left:auto;padding:7px 12px;border:1.5px solid var(--red,#7B0000);border-radius:8px;background:#fff;color:var(--red,#7B0000);font-size:11.5px;font-weight:700;cursor:pointer;display:none">🔄 Changer de groupe</button></div>
@@ -3515,6 +3518,7 @@ function renderCarnet(){
     }
   }
   try{ majEmailPropose(); }catch(e){}
+  try{ majDemandeModif(); }catch(e){}
 }
 
 // ── Écriture élève : lecture-modification-écriture ciblée du document Firestore ──
@@ -3577,6 +3581,119 @@ function _purgerEmailPropose(){
     var d = snap.data() || {};
     var fam = (d.famille && typeof d.famille === 'object') ? d.famille : {};
     if ('emailPropose' in fam){ delete fam.emailPropose; return ref.update({ famille: fam }); }
+  }).catch(function(){});
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  DEMANDES DE CORRECTION — la famille propose, l'admin valide.
+//  Transporté par l'espace famille : aucune règle Firestore à changer.
+// ══════════════════════════════════════════════════════════════════
+var MODIF_CHAMPS = [
+  ['nom','Nom'], ['prenom','Prénom'], ['ddn','Date de naissance'],
+  ['parent','Parent / tuteur / personne à prévenir'], ['parent-tel','Tél. de cette personne'],
+  ['tel','Téléphone'], ['email','Email'], ['adresse','Adresse postale']
+];
+function _modifDemande(id){
+  try{
+    var fam = JSON.parse(localStorage.getItem(KS(id) + '_fam') || '{}');
+    var d = fam.demandeModif;
+    return (d && d.champs && Object.keys(d.champs).length) ? d : null;
+  }catch(e){ return null; }
+}
+
+// — Côté famille : formulaire pré-rempli, seuls les champs modifiés partent —
+function openDemandeModif(){
+  var old = document.getElementById('dm-ov'); if (old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'dm-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99998;display:flex;padding:10px;overflow-y:auto';
+  var esc = function(v){ return String(v == null ? '' : v).replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+  var rows = MODIF_CHAMPS.map(function(p){
+    var cur = (document.getElementById(p[0]) || {}).value || '';
+    var type = p[0] === 'ddn' ? 'date' : (p[0] === 'email' ? 'email' : 'text');
+    return '<label style="font-size:11px;font-weight:800;color:#7B0000;display:block;margin:9px 0 3px;text-transform:uppercase;letter-spacing:.4px">' + p[1] + '</label>'
+      + '<input id="dm-' + p[0] + '" type="' + type + '" value="' + esc(cur) + '" style="width:100%;border:1.5px solid #CCC;border-radius:8px;padding:10px 11px;font-size:15px;box-sizing:border-box">';
+  }).join('');
+  ov.innerHTML = '<div style="background:#FFFDF8;border-radius:14px;max-width:460px;width:100%;margin:auto;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)">'
+    + '<div style="background:#7B0000;color:#fff;padding:12px 16px;font-weight:900;font-size:15px">✏️ Demande de correction</div>'
+    + '<div style="padding:6px 16px 14px">'
+    +   '<div style="font-size:12px;color:#777;margin-top:8px">Corrigez uniquement ce qui est erroné — le club validera la demande.</div>'
+    +   rows
+    +   '<div style="display:flex;gap:8px;margin-top:14px">'
+    +     '<button onclick="envoyerDemandeModif()" style="flex:1;border:none;background:#1A7E2E;color:#fff;border-radius:9px;padding:13px;font-weight:900;font-size:14px;cursor:pointer">📨 Envoyer la demande</button>'
+    +     '<button onclick="document.getElementById(\'dm-ov\').remove()" style="border:1.5px solid #CCC;background:#fff;color:#666;border-radius:9px;padding:13px 16px;font-weight:700;font-size:13px;cursor:pointer">Annuler</button>'
+    +   '</div>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+}
+function envoyerDemandeModif(){
+  var champs = {};
+  MODIF_CHAMPS.forEach(function(p){
+    var el = document.getElementById('dm-' + p[0]);
+    var cur = String(((document.getElementById(p[0]) || {}).value) || '').trim();
+    var v = el ? el.value.trim() : '';
+    if (v !== cur) champs[p[0]] = v;
+  });
+  if (!Object.keys(champs).length){ toast('Aucun changement saisi — corrigez un champ avant d\'envoyer.'); return; }
+  _patchFicheEleve(function(fam){
+    fam.demandeModif = { ts: Date.now(), champs: champs };
+  }, function(){
+    var o = document.getElementById('dm-ov'); if (o) o.remove();
+    toast('✅ Demande envoyée — le club la validera prochainement.');
+  });
+}
+
+// — Côté club : bannière avant → après, validation ou refus —
+function majDemandeModif(){
+  var box = document.getElementById('modif-banner');
+  if (!box) return;
+  if (typeof isViewer === 'function' && isViewer()){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  var d = (famille && famille.demandeModif && famille.demandeModif.champs && Object.keys(famille.demandeModif.champs).length) ? famille.demandeModif : null;
+  if (!d){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  var esc = function(v){ return String(v == null ? '' : v).replace(/</g, '&lt;') || '—'; };
+  var dte = d.ts ? new Date(d.ts).toLocaleDateString('fr-FR') : '';
+  var rows = Object.keys(d.champs).map(function(k){
+    var lbl = k; MODIF_CHAMPS.forEach(function(p){ if (p[0] === k) lbl = p[1]; });
+    var cur = (document.getElementById(k) || {}).value || '';
+    return '<div style="font-size:12.5px;margin:4px 0"><b>' + lbl + '</b> : <span style="color:#B3261E;text-decoration:line-through">' + esc(cur) + '</span> → <b style="color:#1A7E2E">' + esc(d.champs[k]) + '</b></div>';
+  }).join('');
+  box.innerHTML = '<div style="background:#FDF3F2;border:1.5px solid #D32F2F;border-radius:11px;padding:12px 14px;margin-bottom:14px">'
+    + '<div style="font-weight:900;font-size:13px;color:#B3261E;margin-bottom:6px">✏️ La famille demande des corrections' + (dte ? ' <span style="font-weight:600;color:#999;font-size:11px">· ' + dte + '</span>' : '') + '</div>'
+    + rows
+    + '<div style="display:flex;gap:8px;margin-top:10px">'
+    +   '<button onclick="validerDemandeModif()" style="flex:1;border:none;background:#1A7E2E;color:#fff;border-radius:8px;padding:10px;font-weight:800;font-size:12.5px;cursor:pointer">✓ Valider et appliquer</button>'
+    +   '<button onclick="refuserDemandeModif()" style="border:1.5px solid #C33;background:#fff;color:#C33;border-radius:8px;padding:10px 14px;font-weight:800;font-size:12.5px;cursor:pointer">✕ Refuser</button>'
+    + '</div></div>';
+  box.style.display = '';
+}
+async function validerDemandeModif(){
+  var d = (famille && famille.demandeModif) || null;
+  if (!d || !d.champs) return;
+  Object.keys(d.champs).forEach(function(k){
+    var el = document.getElementById(k);
+    if (el) el.value = d.champs[k];
+  });
+  try{ await saveData(); }catch(e){}
+  _clearDemandeModif();
+  toast('✅ Corrections appliquées à la fiche.');
+}
+function refuserDemandeModif(){
+  _clearDemandeModif();
+  toast('✕ Demande refusée — la fiche reste inchangée.');
+}
+function _clearDemandeModif(){
+  if (famille) delete famille.demandeModif;
+  try{ localStorage.setItem(KS(curId) + '_fam', JSON.stringify(famille || {})); }catch(e){}
+  var box = document.getElementById('modif-banner');
+  if (box){ box.style.display = 'none'; box.innerHTML = ''; }
+  try{ renderSlist(); }catch(e){}
+  if (!db || !curId) return;
+  var ref = db.collection(GROUPS[curGroup].col).doc(curId);
+  ref.get().then(function(snap){
+    if (!snap.exists) return;
+    var dd = snap.data() || {};
+    var fam = (dd.famille && typeof dd.famille === 'object') ? dd.famille : {};
+    if ('demandeModif' in fam){ delete fam.demandeModif; return ref.update({ famille: fam }); }
   }).catch(function(){});
 }
 
@@ -4091,6 +4208,7 @@ function renderSlist(){
     const pctBadge=st.pct!==null?`<span style="font-size:10px;color:${st.pct>=70?'#27ae60':st.pct>=50?'#f39c12':'#e74c3c'};font-weight:700;margin-left:6px">${st.pct}% assiduité</span>`:'';
     const nbCar=(typeof isViewer==='function'&&isViewer())?0:_carnetNonLus(s.id);
     const carBadge=nbCar?`<span title="${nbCar} message(s) non lu(s) dans le carnet de correspondance" style="font-size:10px;background:#E8900C;color:#fff;font-weight:800;border-radius:9px;padding:2px 7px;margin-left:6px;white-space:nowrap">📩 ${nbCar}</span>`:'';
+    const modBadge=((typeof isViewer==='function'&&isViewer())?null:_modifDemande(s.id))?`<span title="Demande de correction des informations en attente" style="font-size:10px;background:#D32F2F;color:#fff;font-weight:800;border-radius:9px;padding:2px 7px;margin-left:6px;white-space:nowrap">✏️</span>`:'';
     const cachedPhoto = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     const thumb = cachedPhoto
       ?`<img src="${cachedPhoto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0">`
@@ -4099,7 +4217,7 @@ function renderSlist(){
       ${dragEnabled?'<span class="drag-handle" title="Maintenir pour déplacer">⠿</span>':'<span class="drag-handle" style="opacity:.25" title="Tri actif : repassez en ordre manuel pour déplacer">⠿</span>'}
       ${thumb}
       <div class="sinfo">
-        <div class="sname">${full}${ic?' <span style="color:var(--gold);font-size:10px">● actif</span>':''}${pctBadge}${carBadge}</div>
+        <div class="sname">${full}${ic?' <span style="color:var(--gold);font-size:10px">● actif</span>':''}${pctBadge}${carBadge}${modBadge}</div>
         <div class="ssub">${beltChip(s.ceinture)}${s.ceinture||'Ceinture non renseignée'}</div>
         ${s.accessCode?`<div class="scode" style="font-size:10px;color:#1f5fa8;margin-top:2px">🔑 Code : <b>${s.accessCode}</b> <button class="copy-code" data-code="${s.accessCode}" style="background:none;border:1px solid #1f5fa8;color:#1f5fa8;border-radius:3px;font-size:9px;padding:0 5px;cursor:pointer;margin-left:4px">copier</button></div>`:''}
       </div>
@@ -4176,6 +4294,12 @@ function renderSlist(){
     }
     var _cb = document.getElementById('carnet-badge');
     if (_cb){ _cb.textContent = _tot > 99 ? '99+' : String(_tot); _cb.style.display = _tot ? 'inline-flex' : 'none'; }
+    var _tm = 0;
+    if (typeof isViewer !== 'function' || !isViewer()){
+      list.forEach(function(s){ if (_modifDemande(s.id)) _tm++; });
+    }
+    var _mb = document.getElementById('modif-badge');
+    if (_mb){ _mb.textContent = '✏️' + (_tm > 9 ? '9+' : _tm); _mb.style.display = _tm ? 'inline-flex' : 'none'; }
   }catch(e){}
 }
 
