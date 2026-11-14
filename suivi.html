@@ -1088,6 +1088,7 @@ else { if(window.innerWidth > 900){ setTimeout(function(){ var r=_selectedRole; 
 <div class="abar">
   <div class="brow">
     <button class="btn" id="btn-appel" onclick="openAppel()" style="background:var(--gold,#C9A84C);color:#3A2C00;font-weight:800">📋 Appel</button>
+    <button class="btn" id="btn-defis" onclick="openDefis()" title="Attribuer une médaille à plusieurs élèves d'un coup" style="background:#FBF4E2;color:#7B0000;border:1.5px solid var(--gold,#C9A84C);font-weight:800">🏅 Défis</button>
   <button class="btn" id="btn-prog" onclick="openProgramme()" title="Programme du groupe partagé entre enseignants : ce qui a été vu / reste à voir" style="background:#FBF7EC;border:1.5px solid var(--gold,#C9A84C);color:#7B0000;font-weight:800">🎯 Programme</button>
   <button class="btn bprim" onclick="saveData()">💾 Sauvegarder</button>
     <button class="btn bpdf admin-only" onclick="exportPDF()">🖨 PDF</button>
@@ -2144,7 +2145,7 @@ function renderMedailles(){
     : 'Cliquez sur une médaille pour la débloquer ou la retirer';
   cont.innerHTML = MEDAILLES.map(function(m){
     var on = medailles.indexOf(m.id) > -1;
-    return '<div onclick="toggleMedaille(\'' + m.id + '\')" title="' + m.titre + ' — ' + m.desc.replace(/"/g, '&quot;') + '"'
+    return '<div onpointerdown="_medDown(\'' + m.id + '\')" onpointerup="_medUp(\'' + m.id + '\')" onpointercancel="_medCancel()" onpointerleave="_medCancel()" oncontextmenu="return false" title="' + m.titre + ' — ' + m.desc.replace(/"/g, '&quot;') + '"'
       + ' style="cursor:pointer;text-align:center;padding:12px 6px 10px;border-radius:12px;border:1.5px solid ' + (on ? 'var(--gold,#C9A84C)' : '#E3E0D6') + ';background:' + (on ? '#FBF4E2' : '#FAFAF7') + ';' + (on ? 'box-shadow:0 3px 10px rgba(201,168,76,.3);' : '') + 'user-select:none;-webkit-tap-highlight-color:transparent">'
       + '<div style="font-size:34px;line-height:1;' + (on ? '' : 'filter:grayscale(1);opacity:.32;') + '">' + m.ico + '</div>'
       + '<div style="font-size:11px;font-weight:800;margin-top:7px;color:' + (on ? '#7B0000' : '#9A9890') + ';line-height:1.25">' + m.titre + '</div>'
@@ -2152,6 +2153,148 @@ function renderMedailles(){
       + '</div>';
   }).join('');
 }
+// Appui long (mobile) : la médaille explique comment s'obtenir, sans se toggler
+var _medTimer = null, _medLong = false;
+function _medDown(id){
+  _medLong = false;
+  clearTimeout(_medTimer);
+  _medTimer = setTimeout(function(){
+    _medLong = true;
+    var m = null;
+    MEDAILLES.forEach(function(x){ if (x.id === id) m = x; });
+    if (m) toast('🏅 ' + m.titre + ' : ' + m.desc);
+  }, 500);
+}
+function _medUp(id){
+  clearTimeout(_medTimer);
+  if (!_medLong) toggleMedaille(id);
+  _medLong = false;
+}
+function _medCancel(){ clearTimeout(_medTimer); _medLong = true; }
+
+// ══════════════════════════════════════════════════════════════════
+//  MODE DÉFIS — trombinoscope d'attribution : une médaille, tout le
+//  groupe à l'écran, on tape les élèves qui l'ont méritée, on valide.
+// ══════════════════════════════════════════════════════════════════
+var _defis = { list:[], sel:{}, initial:{}, medaille:null, enCours:false };
+function openDefis(){
+  if (typeof isViewer === 'function' && isViewer()) return;
+  var list = (typeof getList === 'function' ? getList() : []) || [];
+  if (!list.length){ toast('Aucun élève dans ce groupe.'); return; }
+  _defis.list = list.slice().sort(triCeintureAlpha);
+  var manuelles = MEDAILLES.filter(function(m){ return !m.auto; });
+  _defis.medaille = manuelles[0].id;
+  var opts = manuelles.map(function(m){
+    return '<option value="' + m.id + '">' + m.ico + ' ' + m.titre + '</option>';
+  }).join('');
+  var ov = document.createElement('div');
+  ov.id = 'defis-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99997;display:flex;align-items:center;justify-content:center;padding:6px';
+  ov.innerHTML = '<div style="background:#FFFDF8;border-radius:16px;max-width:980px;width:100%;height:96vh;height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.55)">'
+    + '<div style="background:#7B0000;color:#fff;padding:11px 16px;font-weight:900;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+    +   '<span>🏅 Défis — ' + ((GROUPS[curGroup] && GROUPS[curGroup].label) || '') + '</span>'
+    +   '<span id="defis-count" style="font-size:12.5px;background:rgba(255,255,255,.15);border-radius:8px;padding:4px 10px"></span>'
+    + '</div>'
+    + '<div style="padding:9px 14px;border-bottom:1px solid #EFE8D8;background:#FBF7EC">'
+    +   '<select id="defis-sel" onchange="defisChangerMedaille()" style="width:100%;border:1.5px solid var(--gold,#C9A84C);border-radius:9px;padding:11px 12px;font-size:15px;font-weight:700;background:#fff">' + opts + '</select>'
+    +   '<div id="defis-desc" style="font-size:12px;color:#8A6A00;margin-top:6px"></div>'
+    + '</div>'
+    + '<div id="defis-grid" style="flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));grid-auto-rows:max-content;align-items:start;gap:10px"></div>'
+    + '<div style="border-top:1px solid #EEE;padding:10px 14px;background:#FBF7EC;display:flex;gap:8px;justify-content:flex-end">'
+    +   '<button onclick="closeDefis()" style="border:none;background:#EEE;border-radius:10px;padding:14px 18px;font-size:14px;cursor:pointer">Annuler</button>'
+    +   '<button onclick="validerDefis()" style="border:none;background:var(--red,#7B0000);color:#fff;border-radius:10px;padding:14px 26px;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 3px 10px rgba(123,0,0,.35)">💾 Attribuer</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  defisChargerEtats();
+  defisDrawGrid();
+}
+function closeDefis(){ var o = document.getElementById('defis-ov'); if (o) o.remove(); }
+function defisChargerEtats(){
+  _defis.initial = {}; _defis.sel = {};
+  _defis.list.forEach(function(s){
+    var has = false;
+    try{
+      var p = JSON.parse(localStorage.getItem(KS(s.id)) || '{}');
+      has = Array.isArray(p.medailles) && p.medailles.indexOf(_defis.medaille) > -1;
+    }catch(e){}
+    _defis.initial[s.id] = has;
+    _defis.sel[s.id] = has;
+  });
+}
+function defisChangerMedaille(){
+  var sel = document.getElementById('defis-sel');
+  if (sel) _defis.medaille = sel.value;
+  defisChargerEtats();
+  defisDrawGrid();
+}
+function defisDrawGrid(){
+  var grid = document.getElementById('defis-grid');
+  if (!grid) return;
+  var m = null;
+  MEDAILLES.forEach(function(x){ if (x.id === _defis.medaille) m = x; });
+  var desc = document.getElementById('defis-desc');
+  if (desc && m) desc.textContent = m.desc;
+  grid.innerHTML = '';
+  _defis.list.forEach(function(s){
+    var on = !!_defis.sel[s.id];
+    var photo = localStorage.getItem(CLUB.prefixe + '_photo_' + s.id);
+    var chip = document.createElement('div');
+    chip.setAttribute('role', 'button');
+    chip.style.cssText = 'position:relative;display:block;border-radius:12px;cursor:pointer;overflow:hidden;user-select:none;-webkit-tap-highlight-color:transparent;border:3px solid ' + (on ? 'var(--gold,#C9A84C)' : '#DDD') + ';background:' + (on ? '#FBF4E2' : '#FAFAF7') + (on ? ';box-shadow:0 4px 14px rgba(201,168,76,.4)' : '');
+    chip.innerHTML = (photo
+        ? '<img src="' + photo + '" style="width:100%;height:120px;object-fit:cover;object-position:center 15%;display:block;background:#E4E4E4' + (on ? '' : ';filter:grayscale(.6);opacity:.75') + '">'
+        : '<div style="width:100%;height:120px;background:' + (on ? 'var(--gold,#C9A84C)' : '#ADADAD') + ';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:32px">' + ((s.prenom || '?').charAt(0) + (s.nom || '?').charAt(0)).toUpperCase() + '</div>')
+      + '<div style="position:absolute;top:6px;right:6px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;' + (on ? 'background:var(--gold,#C9A84C);box-shadow:0 2px 8px rgba(0,0,0,.35)' : 'background:rgba(255,255,255,.85);border:1.5px solid #CCC;filter:grayscale(1);opacity:.5') + '">' + (m ? m.ico : '🏅') + '</div>'
+      + '<div style="padding:6px 8px;text-align:center">'
+      +   '<div style="font-weight:900;font-size:13.5px;color:' + (on ? '#7B0000' : '#333') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (s.prenom || '') + '</div>'
+      +   '<div style="font-size:10.5px;color:#888;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (s.nom || '') + '</div>'
+      + '</div>';
+    chip.onclick = function(){ _defis.sel[s.id] = !_defis.sel[s.id]; defisDrawGrid(); };
+    grid.appendChild(chip);
+  });
+  var n = _defis.list.filter(function(s){ return _defis.sel[s.id]; }).length;
+  var cnt = document.getElementById('defis-count');
+  if (cnt) cnt.textContent = n + ' / ' + _defis.list.length + ' médaillé(s)';
+}
+function validerDefis(){
+  if (_defis.enCours) return;
+  var changes = _defis.list.filter(function(s){ return !!_defis.sel[s.id] !== !!_defis.initial[s.id]; });
+  if (!changes.length){ toast('Aucun changement — touchez les élèves à médailler.'); closeDefis(); return; }
+  if (!db){ toast('⚠️ Connexion Firebase requise.'); return; }
+  _defis.enCours = true;
+  var mid = _defis.medaille;
+  var col = GROUPS[curGroup].col;
+  var tasks = changes.map(function(s){
+    var ref = db.collection(col).doc(s.id);
+    return ref.get().then(function(snap){
+      if (!snap.exists) return;
+      var d = snap.data() || {};
+      var base = {};
+      try{ base = JSON.parse(d.payload || '{}'); }catch(e){}
+      if (!Array.isArray(base.medailles)) base.medailles = [];
+      var i = base.medailles.indexOf(mid);
+      if (_defis.sel[s.id] && i === -1) base.medailles.push(mid);
+      if (!_defis.sel[s.id] && i > -1) base.medailles.splice(i, 1);
+      try{ base.medailles = _appliquerAuto(base.medailles, base.att || []); }catch(e){}
+      try{ localStorage.setItem(KS(s.id), JSON.stringify(base)); }catch(e){}
+      if (s.id === curId){
+        try{ medailles = base.medailles.slice(); renderMedailles(); }catch(e){}
+      }
+      return ref.update({ payload: JSON.stringify(base) });
+    });
+  });
+  Promise.all(tasks).then(function(){
+    _defis.enCours = false;
+    var m = null;
+    MEDAILLES.forEach(function(x){ if (x.id === mid) m = x; });
+    toast('🏅 « ' + (m ? m.titre : mid) + ' » mis à jour pour ' + changes.length + ' élève(s) !');
+    closeDefis();
+  }).catch(function(e){
+    _defis.enCours = false;
+    toast('❌ Enregistrement incomplet (' + ((e && e.code) || e) + ') — réessayez.');
+  });
+}
+
 function toggleMedaille(id){
   var m = null;
   for (var i = 0; i < MEDAILLES.length; i++){ if (MEDAILLES[i].id === id) m = MEDAILLES[i]; }
