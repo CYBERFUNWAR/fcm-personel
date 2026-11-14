@@ -838,10 +838,9 @@ else { if(window.innerWidth > 900){ setTimeout(function(){ var r=_selectedRole; 
   <button class="grp-btn" onclick="switchGroup('enfants')"      id="grp-enfants">👦 Enfants</button>
   <button class="grp-btn active" onclick="switchGroup('ados')"   id="grp-ados">🥊 Ados</button>
   <button class="grp-btn"        onclick="switchGroup('adultes')" id="grp-adultes">👊 Adultes</button>
-  <button class="grp-btn"        onclick="switchGroup('seniors')" id="grp-seniors">🧓 Seniors</button>
   <button class="grp-btn"        onclick="switchGroup('aerokick')" id="grp-aerokick">🦵 Aérokick</button>
+  <button class="grp-btn"        onclick="switchGroup('fitboxing')" id="grp-fitboxing">🏋 Fit Boxing</button>
   <button class="grp-btn"        onclick="switchGroup('sensei')"  id="grp-sensei">🥋 Sensei</button>
-  <button class="grp-btn"        onclick="switchGroup('competiteurs')" id="grp-competiteurs">🏆 Compét.</button>
 </div>
 
 <!-- TABS -->
@@ -911,14 +910,14 @@ else { if(window.innerWidth > 900){ setTimeout(function(){ var r=_selectedRole; 
     <div class="fg"><label>Catégorie compét.</label><input id="categorie" type="text" placeholder="ex: -60kg Cadets"></div>
   </div>
 
-  <div class="fgrid" style="grid-template-columns:2fr 1.2fr">
-    <div class="fg"><label>Parent / tuteur / personne à prévenir</label><input id="parent" type="text" placeholder="—"></div>
-    <div class="fg"><label>Tél. de cette personne</label><input id="parent-tel" type="tel" placeholder="06 00 00 00 00"></div>
-  </div>
   <div class="fgrid" style="grid-template-columns:1.2fr 1.6fr 2.2fr">
     <div class="fg"><label>Téléphone</label><input id="tel" type="tel" placeholder="06 00 00 00 00"></div>
     <div class="fg"><label>Email</label><input id="email" type="email" placeholder="—"><div id="email-propose" style="display:none"></div></div>
     <div class="fg"><label>Adresse postale</label><input id="adresse" type="text" placeholder="N°, rue, code postal, ville"></div>
+  </div>
+  <div class="fgrid" style="grid-template-columns:2fr 1.2fr">
+    <div class="fg"><label>Parent / tuteur / personne à prévenir</label><input id="parent" type="text" placeholder="—"></div>
+    <div class="fg"><label>Tél. de cette personne</label><input id="parent-tel" type="tel" placeholder="06 00 00 00 00"></div>
   </div>
   <div class="fgrid">
     <div class="fg"><label>Objectifs personnels pour la saison <span class="cfg-saison">2026-2027</span></label><textarea id="objectifs" placeholder="Ex: Obtenir la ceinture bleue, participer à 2 tournois…" rows="3"></textarea></div>
@@ -2145,7 +2144,7 @@ function renderMedailles(){
     : 'Cliquez sur une médaille pour la débloquer ou la retirer';
   cont.innerHTML = MEDAILLES.map(function(m){
     var on = medailles.indexOf(m.id) > -1;
-    return '<div onpointerdown="_medDown(\'' + m.id + '\')" onpointerup="_medUp(\'' + m.id + '\')" onpointercancel="_medCancel()" onpointerleave="_medCancel()" oncontextmenu="return false" title="' + m.titre + ' — ' + m.desc.replace(/"/g, '&quot;') + '"'
+    return '<div onpointerdown="_medDown(event,\'' + m.id + '\')" onpointerup="_medUp(\'' + m.id + '\')" onpointercancel="_medCancel()" onpointerleave="_medCancel()" oncontextmenu="return false" title="' + m.titre + ' — ' + m.desc.replace(/"/g, '&quot;') + '"'
       + ' style="cursor:pointer;text-align:center;padding:12px 6px 10px;border-radius:12px;border:1.5px solid ' + (on ? 'var(--gold,#C9A84C)' : '#E3E0D6') + ';background:' + (on ? '#FBF4E2' : '#FAFAF7') + ';' + (on ? 'box-shadow:0 3px 10px rgba(201,168,76,.3);' : '') + 'user-select:none;-webkit-tap-highlight-color:transparent">'
       + '<div style="font-size:34px;line-height:1;' + (on ? '' : 'filter:grayscale(1);opacity:.32;') + '">' + m.ico + '</div>'
       + '<div style="font-size:11px;font-weight:800;margin-top:7px;color:' + (on ? '#7B0000' : '#9A9890') + ';line-height:1.25">' + m.titre + '</div>'
@@ -2154,15 +2153,35 @@ function renderMedailles(){
   }).join('');
 }
 // Appui long (mobile) : la médaille explique comment s'obtenir, sans se toggler
-var _medTimer = null, _medLong = false;
-function _medDown(id){
+var _medTimer = null, _medLong = false, _medX = 0, _medY = 0, _medBulleT = null;
+// Info-bulle ancrée DANS la page, près du point touché : elle suit le zoom,
+// contrairement au toast fixé en bas d'écran (invisible quand on a zoomé).
+function _medBulle(titre, texte){
+  var old = document.getElementById('med-bulle'); if (old) old.remove();
+  var b = document.createElement('div');
+  b.id = 'med-bulle';
+  b.style.cssText = 'position:absolute;z-index:100001;max-width:250px;background:#2B2B2B;color:#fff;border-radius:10px;padding:10px 13px;font-size:13px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.45);border:1.5px solid var(--gold,#C9A84C)';
+  b.innerHTML = '<b style="color:var(--gold,#C9A84C)">' + titre + '</b><br>' + String(texte).replace(/</g, '&lt;');
+  document.body.appendChild(b);
+  var w = b.offsetWidth, h = b.offsetHeight;
+  var x = Math.max(8, Math.min(_medX - w / 2, (document.documentElement.scrollWidth || 9999) - w - 8));
+  var y = _medY - h - 16;
+  if (y < 4) y = _medY + 26;
+  b.style.left = x + 'px';
+  b.style.top = y + 'px';
+  b.onclick = function(){ try{ b.remove(); }catch(e){} };
+  clearTimeout(_medBulleT);
+  _medBulleT = setTimeout(function(){ try{ b.remove(); }catch(e){} }, 5000);
+}
+function _medDown(ev, id){
+  if (ev){ _medX = ev.pageX || _medX; _medY = ev.pageY || _medY; }
   _medLong = false;
   clearTimeout(_medTimer);
   _medTimer = setTimeout(function(){
     _medLong = true;
     var m = null;
     MEDAILLES.forEach(function(x){ if (x.id === id) m = x; });
-    if (m) toast('🏅 ' + m.titre + ' : ' + m.desc);
+    if (m) _medBulle(m.ico + ' ' + m.titre, m.desc);
   }, 500);
 }
 function _medUp(id){
@@ -2300,12 +2319,12 @@ function toggleMedaille(id){
   for (var i = 0; i < MEDAILLES.length; i++){ if (MEDAILLES[i].id === id) m = MEDAILLES[i]; }
   if (!m) return;
   if (m.auto){
-    toast('⚙ ' + m.titre + ' — médaille automatique : ' + m.desc);
+    _medBulle('⚙ ' + m.titre, 'Médaille automatique — ' + m.desc);
     return;
   }
   // Élève / famille : la médaille raconte comment s'obtenir, rien d'autre
   if (typeof isViewer === 'function' && isViewer()){
-    toast('🏅 ' + m.titre + ' : ' + m.desc);
+    _medBulle(m.ico + ' ' + m.titre, m.desc);
     return;
   }
   if (!curId){ toast('Sélectionnez d\'abord un élève.'); return; }
@@ -2684,16 +2703,26 @@ function beltBand(ceinture){
   return '<div style="position:absolute;left:0;right:50%;bottom:0;height:9px;background:' + found[0] + ';box-shadow:inset 0 1px 0 rgba(0,0,0,.15)"></div>'
        + '<div style="position:absolute;left:50%;right:0;bottom:0;height:9px;background:' + found[1] + ';box-shadow:inset 0 1px 0 rgba(0,0,0,.15)"></div>';
 }
+var _appelValides = [];
 function appelDrawGrid(){
+  try{ _appelValides = seancesValidees(curGroup); }catch(e){ _appelValides = []; }
   var grid = document.getElementById('appel-grid');
   grid.innerHTML = '';
   _appel.list.forEach(function(s){
     var on = _appel.present[s.id];
     var chip = document.createElement('div');
     chip.setAttribute('role', 'button');
-    chip.style.cssText = 'position:relative;display:block;min-height:245px;border-radius:14px;cursor:pointer;overflow:hidden;transition:all .1s;user-select:none;-webkit-tap-highlight-color:transparent;border:3px solid ' + (on ? '#1A9E30' : '#DDD') + ';background:' + (on ? '#E8F5E9' : '#FAFAFA') + (on ? ';box-shadow:0 4px 14px rgba(26,158,48,.3)' : '');
     var photo = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     var _d = _appel.docs[s.id];
+    // Décrochage : série d'absences consécutives (fin des séances validées).
+    // ≥5 → cadre orange (décrochage possible), ≥10 → rouge (décroché).
+    // Cocher l'élève présent rend le cadre normal (vert) immédiatement.
+    var _serie = 0;
+    try{ _serie = serieAbsences((_d && _d.data && _d.data.att) || [], _appelValides || []); }catch(e){}
+    var _bord = on ? '#1A9E30' : (_serie >= 10 ? '#C62828' : (_serie >= 5 ? '#E8900C' : '#DDD'));
+    var _fond = on ? '#E8F5E9' : (_serie >= 10 ? '#FDECEA' : (_serie >= 5 ? '#FFF3E0' : '#FAFAFA'));
+    if (!on && _serie >= 5) chip.title = (_serie >= 10 ? 'Décroché' : 'Décrochage possible') + ' : ' + _serie + ' absences consécutives';
+    chip.style.cssText = 'position:relative;display:block;min-height:245px;border-radius:14px;cursor:pointer;overflow:hidden;transition:all .1s;user-select:none;-webkit-tap-highlight-color:transparent;border:3px solid ' + _bord + ';background:' + _fond + (on ? ';box-shadow:0 4px 14px rgba(26,158,48,.3)' : (_serie >= 10 ? ';box-shadow:0 3px 12px rgba(198,40,40,.35)' : (_serie >= 5 ? ';box-shadow:0 3px 12px rgba(232,144,12,.3)' : '')));
     var _ct = (_d && _d.data && _d.data.fields && _d.data.fields.ceinture) || (_d && _d.meta && _d.meta.ceinture) || s.ceinture || '';
     var band = beltBand(_ct);
     // Nom/prénom : fiche complète d'abord (source de vérité), liste locale en secours
@@ -3001,7 +3030,7 @@ function closeSaison(){ if (_saison.enCours){ toast('⏳ Opération en cours —
 //  PRÉ-INSCRIPTIONS EN LIGNE — les familles remplissent inscription.html,
 //  l'administrateur intègre chaque demande en un clic.
 // ══════════════════════════════════════════════════════════════════
-var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes Loisirs', seniors:'Seniors', aerokick:'Aérokick', fitboxing:'Fit Boxing' };
+var PREINS_GROUPES = { enfants:'Enfants', ados:'Adolescents', adultes:'Adultes Loisirs', aerokick:'Aérokick' };
 
 // Tarifs annuels par section — stockés dans Firestore (config/tarifs),
 // modifiables en Admin : les prix peuvent changer chaque saison sans toucher au code.
@@ -4352,11 +4381,16 @@ function renderSlist(){
     const nbCar=(typeof isViewer==='function'&&isViewer())?0:_carnetNonLus(s.id);
     const carBadge=nbCar?`<span title="${nbCar} message(s) non lu(s) dans le carnet de correspondance" style="font-size:10px;background:#E8900C;color:#fff;font-weight:800;border-radius:9px;padding:2px 7px;margin-left:6px;white-space:nowrap">📩 ${nbCar}</span>`:'';
     const modBadge=((typeof isViewer==='function'&&isViewer())?null:_modifDemande(s.id))?`<span title="Demande de correction des informations en attente" style="font-size:10px;background:#D32F2F;color:#fff;font-weight:800;border-radius:9px;padding:2px 7px;margin-left:6px;white-space:nowrap">✏️</span>`:'';
+    let _serieAbs=0;
+    try{ const _pp=JSON.parse(localStorage.getItem(KS(s.id))||'{}'); _serieAbs=serieAbsences(_pp.att||[], seancesValidees(curGroup)); }catch(e){}
+    const decroStyle=_serieAbs>=10
+      ? ' style="box-shadow:inset 0 0 0 2.5px #C62828;background:#FDECEA" title="Décroché : '+_serieAbs+' absences consécutives"'
+      : (_serieAbs>=5 ? ' style="box-shadow:inset 0 0 0 2.5px #E8900C;background:#FFF3E0" title="Décrochage possible : '+_serieAbs+' absences consécutives"' : '');
     const cachedPhoto = localStorage.getItem(CLUB.prefixe+'_photo_'+s.id);
     const thumb = cachedPhoto
       ?`<img src="${cachedPhoto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0">`
       :`<div style="width:36px;height:36px;border-radius:50%;background:var(--g2);border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">👤</div>`;
-    return`<div class="sitem${ic?' cur':''}" data-id="${s.id}"${dragEnabled?' draggable="true"':''}>
+    return`<div class="sitem${ic?' cur':''}" data-id="${s.id}"${dragEnabled?' draggable="true"':''}${decroStyle}>
       ${dragEnabled?'<span class="drag-handle" title="Maintenir pour déplacer">⠿</span>':'<span class="drag-handle" style="opacity:.25" title="Tri actif : repassez en ordre manuel pour déplacer">⠿</span>'}
       ${thumb}
       <div class="sinfo">
